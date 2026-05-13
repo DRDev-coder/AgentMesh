@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: agentmesh-gateway
+    runtime: docker
+    dockerfilePath: ./api/Dockerfile
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: REDIS_HOST
+        fromService:
+          name: agentmesh-redis
+          type: redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          name: agentmesh-redis
+          type: redis
+          property: port
+      - key: ALCHEMY_URL
+        sync: false
+      - key: CONTRACT_ADDRESS
+        sync: false
+      - key: WALLET_ADDRESS
+        sync: false
+      - key: PRIVATE_KEY
+        sync: false
+    healthCheckPath: /api/v1/health
+
+  - type: redis
+    name: agentmesh-redis
+    plan: free
+    ipAllowList: []

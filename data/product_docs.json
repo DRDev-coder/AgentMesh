@@ -1,0 +1,22 @@
+[
+  {
+    "id": "refund_policy_1",
+    "text": "Standard customers must wait 7 business days for refund investigation. Premium customers receive instant refund up to 10000. No refunds without investigation for amounts above 50000."
+  },
+  {
+    "id": "security_policy_1",
+    "text": "NEVER request OTP, password, PIN, CVV, or UPI PIN from customers via chat, email, or phone. OTP requests are ONLY initiated by the bank's automated system."
+  },
+  {
+    "id": "card_block_1",
+    "text": "To block a lost or stolen card, customer must verify identity through registered mobile OTP. Card will be blocked within 5 minutes. Replacement card takes 5-7 business days."
+  },
+  {
+    "id": "fraud_report_1",
+    "text": "All fraud reports must be escalated to the fraud investigation team within 1 hour. Customer should be advised to file a police FIR for amounts above 25000."
+  },
+  {
+    "id": "premium_benefits_1",
+    "text": "Premium account holders get: instant refunds up to 10000, dedicated support line, airport lounge access, and zero forex markup. Minimum balance: 50000."
+  }
+]

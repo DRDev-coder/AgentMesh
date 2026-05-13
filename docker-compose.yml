@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  sage:
+    build: ./agents/sage
+    ports:
+      - "5001:5000"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+    depends_on:
+      chromadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  guardian:
+    build: ./agents/guardian
+    ports:
+      - "5002:5000"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  empath:
+    build: ./agents/empath
+    ports:
+      - "5003:5000"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  oracle:
+    build: ./agents/oracle
+    ports:
+      - "5004:5000"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  gateway:
+    build:
+      context: .
+      dockerfile: ./api/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ALCHEMY_URL=${ALCHEMY_URL}
+      - CONTRACT_ADDRESS=${CONTRACT_ADDRESS}
+      - WALLET_ADDRESS=${WALLET_ADDRESS}
+      - PRIVATE_KEY=${PRIVATE_KEY}
+    volumes:
+      - ./consensus:/app/consensus:ro
+      - ./data:/app/data:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      sage:
+        condition: service_started
+      guardian:
+        condition: service_started
+      empath:
+        condition: service_started
+      oracle:
+        condition: service_started
+
+volumes:
+  redis_data:
+  chroma_data:
