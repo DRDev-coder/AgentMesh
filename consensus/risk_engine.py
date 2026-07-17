@@ -25,6 +25,7 @@ class RiskAwareDecisionEngine:
         guardian: GuardianOutput | None,
         empath: EmpathOutput | None,
         oracle: OracleOutput | None,
+        escalation_threshold: int | None = None,
     ) -> DecisionResult:
         if states.get("sage") is not AgentState.AVAILABLE or sage is None:
             return DecisionResult(
@@ -98,6 +99,18 @@ class RiskAwareDecisionEngine:
             return DecisionResult(
                 state=DecisionState.ESCALATED,
                 reason="The customer message indicates a high-risk urgent situation.",
+                create_escalation=True,
+                priority=EscalationPriority.HIGH,
+                response_source="draft",
+                rewrite_tone=True,
+            )
+
+        if empath and escalation_threshold is not None and (
+            empath.urgency >= escalation_threshold
+        ):
+            return DecisionResult(
+                state=DecisionState.ESCALATED,
+                reason="The workspace escalation threshold was reached.",
                 create_escalation=True,
                 priority=EscalationPriority.HIGH,
                 response_source="draft",

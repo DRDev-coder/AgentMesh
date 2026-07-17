@@ -7,22 +7,57 @@ _LEET_TRANSLATION = str.maketrans({
 })
 
 
-QUERY_PATTERNS = [
+GLOBAL_QUERY_PATTERNS = [
     (r"\b(click here|verify now|limited time|account (?:will be )?(?:closed|blocked))\b", "PHISHING_URGENCY"),
-    (r"\b(share|send|provide|give|tell).{0,40}\b(card number|account number|aadhaar|pan number)\b", "REQUESTING_PII"),
     (r"\b(ignore|disregard|forget|override|disable|evade|reveal|unrestricted|developer mode|system command|role[ -]?play|pretend).{0,100}\b(system prompt|secret prompt|private instructions?|previous instructions?|security polic(?:y|ies)|bank rules?|safeguards?|guardian|policy checks?|safety filters?|restrictions?|identity checks?|verification)\b", "PROMPT_INJECTION"),
     (r"\b(print|provide|expose|output|reveal).{0,80}\b(system prompt|secret prompt|private instructions?|customer passwords?|account secrets?)\b", "PROMPT_INJECTION"),
     (r"\b(mark (?:this )?request safe|approve my transfer|authorize the payment|no restrictions)\b", "PROMPT_INJECTION"),
     (r"\b(bypass|skip|disable|evade|override).{0,40}\b(verification|identity check|security|policy|controls?)\b", "POLICY_OVERRIDE"),
 ]
 
-ANSWER_PATTERNS = [
-    (r"\b(refund (?:is )?guaranteed|guarantee (?:a )?refund|guaranteed (?:an )?instant refund)\b", "UNAUTHORIZED_REFUND_PROMISE"),
-    (r"\b(we will not investigate|no need to verify|skip (?:the )?investigation)\b", "SKIPPING_VERIFICATION"),
+FINANCE_QUERY_PATTERNS = [
+    (r"\b(share|send|provide|give|tell).{0,40}\b(card number|account number|aadhaar|pan number)\b", "REQUESTING_PII"),
+]
+
+GLOBAL_ANSWER_PATTERNS = [
     (r"\b(click here|verify now|limited time)\b", "PHISHING_URGENCY"),
     (r"\b(wire transfer|send money|move money|transfer funds?|buy (?:a )?gift card|crypto transfer)\b", "UNSAFE_TRANSFER_INSTRUCTIONS"),
     (r"\b(bypass|skip|disable|evade|override).{0,40}\b(verification|identity check|security|policy|controls?)\b", "POLICY_OVERRIDE"),
 ]
+
+FINANCE_ANSWER_PATTERNS = [
+    (r"\b(refund (?:is )?guaranteed|guarantee (?:a )?refund|guaranteed (?:an )?instant refund)\b", "UNAUTHORIZED_REFUND_PROMISE"),
+    (r"\b(we will not investigate|no need to verify|skip (?:the )?investigation)\b", "SKIPPING_VERIFICATION"),
+]
+
+HEALTHCARE_QUERY_PATTERNS = [
+    (
+        r"\b(diagnose me|what disease do i have|prescribe|change my dosage|stop taking my medication)\b",
+        "MEDICAL_DIAGNOSIS_REQUEST",
+    ),
+]
+
+HEALTHCARE_ANSWER_PATTERNS = [
+    (
+        r"\b(you (?:definitely )?have|your diagnosis is|take \d+ ?mg|stop taking your medication)\b",
+        "UNSAFE_MEDICAL_GUIDANCE",
+    ),
+]
+
+ECOMMERCE_ANSWER_PATTERNS = [
+    (
+        r"\b(pay|send money).{0,40}\b(outside (?:the )?(?:marketplace|platform)|gift card|crypto)\b",
+        "OFF_PLATFORM_PAYMENT",
+    ),
+    (
+        r"\b(refund (?:is )?guaranteed|guaranteed full refund)\b",
+        "UNAUTHORIZED_REFUND_PROMISE",
+    ),
+]
+
+# Compatibility constants retain the original direct-scanner behavior.
+QUERY_PATTERNS = [*GLOBAL_QUERY_PATTERNS, *FINANCE_QUERY_PATTERNS]
+ANSWER_PATTERNS = [*GLOBAL_ANSWER_PATTERNS, *FINANCE_ANSWER_PATTERNS]
 
 CRITICAL_VIOLATIONS = {
     "REQUESTING_CREDENTIALS",
@@ -36,7 +71,10 @@ WARNING_VIOLATIONS = {
     "REQUESTING_PII",
     "UNAUTHORIZED_REFUND_PROMISE",
     "SKIPPING_VERIFICATION",
+    "MEDICAL_DIAGNOSIS_REQUEST",
 }
+
+CRITICAL_VIOLATIONS.update({"UNSAFE_MEDICAL_GUIDANCE", "OFF_PLATFORM_PAYMENT"})
 
 
 def normalize_security_text(text: str) -> str:
@@ -120,8 +158,13 @@ def _contains_unsafe_transfer_request(text: str) -> bool:
     return bool(unsafe_context)
 
 
-def scan_query(text: str) -> list:
-    flags = _scan(text, QUERY_PATTERNS)
+def scan_query(text: str, rule_packs: set[str] | None = None) -> list:
+    patterns = GLOBAL_QUERY_PATTERNS
+    if rule_packs is None or "FINANCE_SUPPORT" in rule_packs:
+        patterns = [*patterns, *FINANCE_QUERY_PATTERNS]
+    if rule_packs and "HEALTHCARE_INFORMATION" in rule_packs:
+        patterns = [*patterns, *HEALTHCARE_QUERY_PATTERNS]
+    flags = _scan(text, patterns)
     if _contains_credential_request(text):
         flags.append("REQUESTING_CREDENTIALS")
     if _contains_unsafe_transfer_request(text):
@@ -129,8 +172,15 @@ def scan_query(text: str) -> list:
     return sorted(set(flags))
 
 
-def scan_answer(text: str) -> list:
-    flags = _scan(text, ANSWER_PATTERNS)
+def scan_answer(text: str, rule_packs: set[str] | None = None) -> list:
+    patterns = GLOBAL_ANSWER_PATTERNS
+    if rule_packs is None or "FINANCE_SUPPORT" in rule_packs:
+        patterns = [*patterns, *FINANCE_ANSWER_PATTERNS]
+    if rule_packs and "HEALTHCARE_INFORMATION" in rule_packs:
+        patterns = [*patterns, *HEALTHCARE_ANSWER_PATTERNS]
+    if rule_packs and "ECOMMERCE_SUPPORT" in rule_packs:
+        patterns = [*patterns, *ECOMMERCE_ANSWER_PATTERNS]
+    flags = _scan(text, patterns)
     if _contains_credential_request(text, answer=True):
         flags.append("REQUESTING_CREDENTIALS")
     return sorted(set(flags))

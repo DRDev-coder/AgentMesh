@@ -1,196 +1,142 @@
-# Deployment Guide
+# AgentMesh deployment runbook
 
-AgentMesh has one supported backend topology: a consolidated FastAPI service with a writable SQLite state directory. The React/Vite frontend is built and hosted separately. Redis, Chroma, and standalone agent services are not required. Native verification uses Python 3.11.
+The supported production topology is Vercel for the static frontend, Render for the FastAPI API and separate Celery worker/scheduler, Supabase for Auth/PostgreSQL/pgvector/private object storage/backups, managed Redis, and Stripe Billing. Development, staging, and production must use separate projects and secrets.
 
-No public deployment URL is verified in this repository snapshot. Treat a deployment as complete only after testing the exact public backend and frontend URLs.
+## 1. Pre-deployment gates
 
-## 1. Pre-deployment verification
+Do not launch unless CI passes compilation, Ruff, all backend tests, the PostgreSQL RLS test, deterministic evaluation, OpenAPI generation, TypeScript checks, component tests, the Vite build, the Playwright journey, and Compose validation.
 
-Run from the repository root:
+The launch gate additionally requires staging proof of:
 
-```bash
-cp .env.example .env
-python -m pip install -r requirements-dev.txt
-python -m compileall agents api consensus shared evaluation
-python -m ruff check agents api consensus shared evaluation tests
-python -m pytest -v
-python evaluation/run_evaluation.py --no-write
+- cross-organization and cross-workspace `404` isolation;
+- immediate API-key revocation;
+- live-key access to published releases only;
+- reviewer locking and edited-answer revalidation;
+- the 500/501 quota boundary under concurrency;
+- duplicate and out-of-order Stripe webhooks;
+- meter-outbox reconciliation;
+- content redaction and document source deletion;
+- provider failure producing non-billable `SYSTEM_UNAVAILABLE`;
+- database backup restoration into a clean staging environment.
 
-cd frontend
-npm install
-npm run build
-cd ..
+## 2. Supabase
 
-cd blockchain
-npm install
-npm test
-cd ..
+Create separate projects for development, staging, and production.
 
-docker compose --env-file .env config --quiet
-```
+1. Enable verified email/password and Google OAuth.
+2. Configure the exact frontend callback URLs and password-recovery URL.
+3. Enable CAPTCHA enforcement and use the matching Turnstile site key as `VITE_TURNSTILE_SITE_KEY`.
+4. Enable MFA; platform administrators must enroll and present `aal2`.
+5. Enable `pgvector` and confirm point-in-time backups for the selected plan.
+6. Create a private object-storage bucket. Do not expose source objects publicly.
+7. Use the PostgreSQL connection string as `DATABASE_URL` and the storage S3-compatible values as `S3_*`.
 
-Do not proceed on a failed compile, lint, test, evaluation, frontend build, contract test, or Compose validation. Ordinary verification does not require Groq, RPC, or deployed-contract credentials.
-
-## 2. Local Docker backend
-
-Set at least a new `REVIEW_API_KEY` in `.env`. A Groq key is optional, and blockchain should remain disabled unless all of its settings are intentionally supplied.
+Run migrations with a role that owns the application schema:
 
 ```bash
-docker compose up --build -d
-docker compose ps
-curl http://localhost:8000/healthz
-curl http://localhost:8000/readyz
+alembic upgrade head
 ```
 
-With the Compose backend healthy, the opt-in HTTP test is:
+The runtime role needs CRUD privileges but should not be a PostgreSQL superuser, because superusers bypass RLS. The migration enables and forces tenant RLS policies. Keep connection pooling in transaction mode so transaction-local tenant settings cannot leak between requests.
+
+## 3. Stripe
+
+Before setting `APP_ENV=production`:
+
+1. Create the AgentMesh product and metered recurring price.
+2. Create a count/sum meter event matching `STRIPE_METER_EVENT_NAME`.
+3. Configure Customer Portal behavior and invoice/payment-failure handling.
+4. Register `POST https://<api-origin>/api/v1/webhooks/stripe` and store its signing secret.
+5. Supply `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `STRIPE_PRICE_ID`.
+6. Supply `OVERAGE_UNIT_PRICE_CENTS`; it is used only for the real-time AgentMesh projection and spend-cap enforcement. Stripe remains invoice-authoritative.
+
+Use Stripe test mode in staging. Confirm signature rejection, event idempotency, cancellation/unpaid states, meter retries, and daily reconciliation before live mode.
+
+## 4. Render API and workers
+
+`render.yaml` declares:
+
+- `agentmesh-api`, with `/readyz` health checks and `alembic upgrade head` as the pre-deploy command;
+- `agentmesh-worker`, running Celery jobs;
+- `agentmesh-scheduler`, running Celery Beat;
+- persistent `agentmesh-redis` with `noeviction` for task durability.
+
+Supply every `sync: false` value in the `agentmesh-production` environment group. Production startup intentionally fails when PostgreSQL, managed Redis, Supabase Auth, private S3 storage, exact HTTPS CORS, Stripe, transactional email, external pricing, and provider-cost limits are incomplete.
+
+Important server-only settings:
+
+| Setting | Purpose |
+| --- | --- |
+| `DATABASE_URL` | Supabase PostgreSQL URL using the application role |
+| `REDIS_URL` | Managed Redis internal URL |
+| `SUPABASE_URL` | JWT issuer/JWKS origin |
+| `API_KEY_PEPPER` | 32+ character key-digest pepper |
+| `WEBHOOK_ENCRYPTION_KEY` | 32+ character envelope key for webhook secrets |
+| `S3_*` | Private Supabase/object-storage S3 interface |
+| `STRIPE_*` | Checkout, meters, portal, and webhook verification |
+| `OVERAGE_UNIT_PRICE_CENTS` | Deployment-configured usage projection |
+| `PROVIDER_COST_CAP_CENTS` | Emergency monthly provider-cost ceiling |
+| `ESTIMATED_COST_PER_DECISION_MILLICENTS` | Cost estimate used by the circuit breaker |
+| `EMAIL_PROVIDER_*` | Transactional email HTTP adapter |
+| `GROQ_API_KEY` | AgentMesh-owned model-provider credential |
+
+Never place these settings in a `VITE_` variable.
+
+After the first verified user signs in, grant the initial platform role from a protected shell:
 
 ```bash
-RUN_FULL_STACK_TESTS=1 python -m pytest tests/test_full_stack_optional.py -v
+python -m api.bootstrap_platform_admin \
+  --user-id <supabase-user-id> \
+  --granted-by <operator-identity>
 ```
 
-Compose runs only `gateway`. Its named `agentmesh_state` volume is mounted at `/app/state`, where the container writes `/app/state/agentmesh.db`. The sample policy corpus is copied into the image at `/app/data/product_docs.json`.
+The command requires a verified application identity and writes an immutable platform audit event.
 
-Inspect failures with:
+## 5. Vercel frontend
 
-```bash
-docker compose logs gateway
-```
-
-Stop the backend without deleting the database:
-
-```bash
-docker compose down
-```
-
-`docker compose down --volumes` permanently deletes the prototype SQLite volume and should be used only when intentionally resetting demo data.
-
-## 3. Local frontend
-
-Vite reads environment files from `frontend/`, not the repository root. Create `frontend/.env.local` with only the public browser setting:
+Configure root directory `frontend`, build command `npm run build`, and output directory `dist`. Supply only public settings:
 
 ```dotenv
-VITE_API_URL=http://localhost:8000/api/v1
+VITE_API_URL=https://api.example.com/api/v1
+VITE_SUPABASE_URL=https://<project>.supabase.co
+VITE_SUPABASE_ANON_KEY=<public-anon-key>
+VITE_TURNSTILE_SITE_KEY=<public-site-key>
 ```
 
-Then run:
+Add the exact Vercel origin to backend `CORS_ORIGINS`. `frontend/vercel.json` rewrites client-side routes to `index.html`.
+
+## 6. Smoke test
 
 ```bash
-cd frontend
-npm install
-npm run dev
+curl https://api.example.com/healthz
+curl https://api.example.com/readyz
 ```
 
-Do not place `REVIEW_API_KEY`, `GROQ_API_KEY`, wallet keys, or credential-bearing RPC URLs in a `VITE_` variable. Vite embeds such values in browser assets.
+Then complete this staging journey in a clean browser:
 
-## 4. Render backend
+1. Sign up through CAPTCHA, verify email, and complete onboarding.
+2. Upload a non-sensitive Markdown policy and wait for `READY_FOR_REVIEW`.
+3. Preview extracted chunks and publish a knowledge release.
+4. Create a test key and call `POST /api/v1/decisions` with an idempotency key.
+5. Confirm the decision, citations, exact release/profile IDs, and one usage unit.
+6. Retry the same request and confirm the same decision ID and unchanged usage.
+7. Cause an escalation, claim it, test a conflicting edit, and approve a safe cited answer.
+8. Confirm signed customer webhook delivery and immutable review/audit history.
+9. Exercise Checkout in Stripe test mode and compare AgentMesh usage with meter events.
+10. Revoke the key and confirm the next call returns `401`.
 
-[render.yaml](render.yaml) defines one Docker web service with:
+## 7. Privacy, retention, and deletion
 
-- the repository root as Docker build context;
-- `api/Dockerfile` as the image definition;
-- `/readyz` as the health-check path;
-- a 1 GB persistent disk mounted at `/app/state`;
-- `DATABASE_PATH=/app/state/agentmesh.db`;
-- no Redis or standalone agent services.
+The API never intentionally logs prompts, answers, documents, secrets, payment data, or provider credentials. Raw decision and escalation content is redacted after each organization's retention window (30 days by default); audit and billing metadata remain. Archiving a document removes its chunks from retrieval immediately and queues source-object deletion.
 
-The Blueprint uses Render's `starter` service because a persistent disk is required for SQLite durability. Render persistent disks are not available to free web services; a disk-backed service cannot scale horizontally or use zero-downtime deploys. Confirm current constraints in the [Render persistent disk documentation](https://render.com/docs/disks).
-
-### Create the service
-
-1. Push the repository to a Git provider supported by Render.
-2. In Render, create a Blueprint and select this repository.
-3. Review the `agentmesh-api` service and attached disk before applying it.
-4. Supply the prompted environment values.
-5. Deploy and wait for `/readyz` to return a successful status.
-
-### Required Render values
-
-| Variable | Deployment guidance |
-| --- | --- |
-| `CORS_ORIGINS` | Exact public frontend origin, for example `https://agentmesh.example`. Use commas for multiple origins. |
-| `REVIEW_API_KEY` | Generated by the Blueprint. Store it in a secure operator secret store; do not put it in public frontend code. |
-| `GROQ_API_KEY` | Optional. Leave unset to use the local path. |
-
-The Blueprint provides safe defaults for the model name, knowledge path, database path, query limit, rate limit, and disabled blockchain flag.
-
-If blockchain is intentionally enabled, set all of `BLOCKCHAIN_RPC_URL`, `BLOCKCHAIN_CONTRACT_ADDRESS`, `BLOCKCHAIN_WALLET_ADDRESS`, and `BLOCKCHAIN_PRIVATE_KEY`; optionally set `BLOCKCHAIN_EXPLORER_URL`. Use dashboard secrets, never checked-in values. Enabling blockchain does not replace the persistent SQLite disk.
-
-### Backend smoke test
-
-Replace the placeholder with the actual Render hostname:
-
-```bash
-API_ORIGIN=https://your-agentmesh-api.onrender.com
-
-curl "$API_ORIGIN/healthz"
-curl "$API_ORIGIN/readyz"
-curl -X POST "$API_ORIGIN/api/v1/chat" \
-  -H "Content-Type: application/json" \
-  -d '{"query":"How long will my refund take?"}'
-```
-
-Record the deployment date, source revision, URLs, and smoke-test result before adding a public-deployment claim to submission material.
-
-## 5. Static frontend hosting
-
-The frontend can be deployed to Vercel or another Vite-compatible static host.
-
-Configure the frontend project with:
-
-- root directory: `frontend`;
-- install command: `npm install`;
-- build command: `npm run build`;
-- output directory: `dist`;
-- `VITE_API_URL=https://your-agentmesh-api.onrender.com/api/v1`.
-
-Build once locally with that API base before deploying:
-
-```bash
-cd frontend
-VITE_API_URL=https://your-agentmesh-api.onrender.com/api/v1 npm run build
-```
-
-Add the final frontend origin—not a path—to backend `CORS_ORIGINS`, redeploy the backend if needed, then test in a clean browser session.
-
-### Public end-to-end smoke test
-
-Verify all of the following against public URLs:
-
-- the browser loads without mixed-content or CORS errors;
-- `/healthz` and `/readyz` are successful;
-- a grounded policy question returns a citation and non-error decision;
-- a credential request is blocked by a deterministic finding;
-- an unsupported request is not normally approved;
-- an urgent case creates a review ticket;
-- a reviewer can retrieve and act on the ticket using the protected workflow;
-- a missing or failed optional blockchain connection does not break chat.
-
-## 6. Data durability and backup
-
-Only files written under `/app/state` survive a Render redeploy. Keep `DATABASE_PATH` under that mount. Render snapshots its disk, but application owners should still define an export, retention, restore-test, and deletion process before storing real customer content.
-
-The default SQLite design is single-instance. Do not add replicas or autoscaling around the same local database. Move to a managed relational database before horizontal scale or concurrent production review.
-
-Prototype review edits are length/schema-validated and attributed only to the shared review credential. They are not automatically rechecked by GUARDIAN or ORACLE, so operators must keep edits fact-preserving; production review requires identity, action history, and revalidation.
-
-For local Docker, back up the named volume using an operator-approved process. Never copy a live database without considering SQLite consistency; use SQLite's backup facilities or stop writes first.
-
-## 7. Readiness and troubleshooting
-
-`/healthz` answers whether the API process is alive. `/readyz` checks resources required to produce a valid decision, including readable policy data and writable application storage. Render and Compose use readiness, not liveness, for traffic health.
-
-Common failures:
-
-| Symptom | Check |
-| --- | --- |
-| `/readyz` returns non-success | Verify `KNOWLEDGE_BASE_PATH`, JSON validity, state-directory permissions, and SQLite initialization logs. |
-| Browser reports CORS failure | Set `CORS_ORIGINS` to the exact scheme and host of the deployed frontend; remove trailing paths. |
-| Frontend calls localhost after deployment | Rebuild with the public `VITE_API_URL`; it is embedded at build time. |
-| Review action is unauthorized | Confirm the server-side `REVIEW_API_KEY` and `X-Review-API-Key` request header; do not embed the key in a public client build. |
-| Hosted generation is unavailable | Check the optional Groq key/base/model and provider status. Core safety rules must still fail safely. |
-| SQLite data disappears | Confirm `DATABASE_PATH` is `/app/state/agentmesh.db` and the disk is attached at `/app/state`. |
-| Blockchain shows failed/disabled | Keep `BLOCKCHAIN_ENABLED=false` until all settings and contract/network compatibility are verified. Chat should still work. |
+Alerts should cover API error/latency rate, queue depth, failed jobs, failed webhook/email deliveries, provider-cost circuit activation, Stripe outbox failures, and reconciliation drift. Restore backups regularly into an isolated staging project and record recovery time and data-loss window.
 
 ## 8. Rollback
 
-Roll back the service image through the hosting provider without detaching or replacing the persistent disk. Schema changes should be backward compatible or accompanied by a tested migration/backup procedure. After rollback, repeat readiness, grounded-answer, security-block, unsupported-answer, and review-queue smoke tests.
+1. Stop new deployments and preserve the current database/object-storage state.
+2. Roll the API, worker, scheduler, and frontend back to the same known-good revision.
+3. Do not run Alembic downgrade against production unless a separately reviewed restore plan requires it.
+4. If the new migration is incompatible, restore the pre-deploy database backup into a new database and point the known-good services to it.
+5. Repeat readiness, isolation, key revocation, decision, review, billing, and deletion smoke tests.
+
+The old shared `X-Review-API-Key` and SQLite `/api/v1/chat` path exist only for local compatibility tests and must not be exposed as the production customer or reviewer interface. Blockchain remains disabled and outside the production request path.

@@ -16,8 +16,16 @@ class _ModelDraft(BaseModel):
 
 
 class SageService:
-    def __init__(self, engine: RAGEngine | None = None):
+    def __init__(
+        self,
+        engine: RAGEngine | None = None,
+        *,
+        system_instructions: str = "",
+        response_length: str = "CONCISE",
+    ):
         self.engine = engine or RAGEngine()
+        self.system_instructions = system_instructions.strip()
+        self.response_length = response_length
         self.api_key = os.getenv("GROQ_API_KEY", "").strip()
         self.model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
         self.base_url = os.getenv(
@@ -86,10 +94,13 @@ class SageService:
                 {
                     "role": "system",
                     "content": (
-                        "You draft concise financial-support answers using only the "
-                        "approved evidence. Cite source IDs in square brackets. Do not "
-                        "invent policy, guarantees, or actions. Return JSON with exactly "
-                        "one string field named answer."
+                        "You draft customer-support answers using only the approved "
+                        "evidence. Cite source IDs in square brackets. Do not invent "
+                        "policy, guarantees, diagnoses, or actions. Platform safety "
+                        "controls always override workspace instructions. Return JSON "
+                        "with exactly one string field named answer. "
+                        f"Requested response length: {self.response_length}. "
+                        f"Approved workspace instructions: {self.system_instructions or 'None'}."
                     ),
                 },
                 {

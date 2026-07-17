@@ -1,54 +1,128 @@
+envVarGroups:
+  - name: agentmesh-production
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: SAAS_ENABLED
+        value: "true"
+      - key: AUTH_MODE
+        value: supabase
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_JWT_AUDIENCE
+        value: authenticated
+      - key: CORS_ORIGINS
+        sync: false
+      - key: PUBLIC_APP_URL
+        sync: false
+      - key: OBJECT_STORAGE_BACKEND
+        value: s3
+      - key: S3_ENDPOINT_URL
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: API_KEY_PEPPER
+        generateValue: true
+      - key: WEBHOOK_ENCRYPTION_KEY
+        generateValue: true
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_ID
+        sync: false
+      - key: STRIPE_METER_EVENT_NAME
+        value: agentmesh_decisions
+      - key: OVERAGE_UNIT_PRICE_CENTS
+        sync: false
+      - key: PROVIDER_COST_CAP_CENTS
+        sync: false
+      - key: ESTIMATED_COST_PER_DECISION_MILLICENTS
+        sync: false
+      - key: EMAIL_PROVIDER_URL
+        sync: false
+      - key: EMAIL_PROVIDER_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: MALWARE_SCAN_URL
+        sync: false
+      - key: MALWARE_SCAN_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: BLOCKCHAIN_ENABLED
+        value: "false"
+      - key: TASKS_EAGER
+        value: "false"
+
 services:
+  - type: keyvalue
+    name: agentmesh-redis
+    plan: starter
+    ipAllowList: []
+    maxmemoryPolicy: noeviction
+    persistenceMode: journal-snapshot
+
   - type: web
     name: agentmesh-api
     runtime: docker
     dockerfilePath: ./api/Dockerfile
     dockerContext: .
+    dockerCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    preDeployCommand: alembic upgrade head
     plan: starter
     autoDeployTrigger: checksPass
     healthCheckPath: /readyz
-    disk:
-      name: agentmesh-state
-      mountPath: /app/state
-      sizeGB: 1
+    maxShutdownDelaySeconds: 60
     envVars:
-      - key: GROQ_API_KEY
-        sync: false
-      - key: GROQ_MODEL
-        value: llama-3.3-70b-versatile
-      - key: GROQ_BASE_URL
-        value: https://api.groq.com/openai/v1
-      - key: KNOWLEDGE_BASE_PATH
-        value: /app/data/product_docs.json
-      - key: RETRIEVAL_MIN_SCORE
-        value: "0.18"
-      - key: DATABASE_PATH
-        value: /app/state/agentmesh.db
-      - key: CORS_ORIGINS
-        sync: false
-      - key: QUERY_MAX_LENGTH
-        value: "4000"
-      - key: RATE_LIMIT_REQUESTS
-        value: "30"
-      - key: RATE_LIMIT_WINDOW_SECONDS
-        value: "60"
-      - key: AGENT_TIMEOUT_SECONDS
-        value: "15"
-      - key: BLOCKCHAIN_ENABLED
-        value: "false"
-      - key: BLOCKCHAIN_RPC_URL
-        sync: false
-      - key: BLOCKCHAIN_CONTRACT_ADDRESS
-        sync: false
-      - key: BLOCKCHAIN_WALLET_ADDRESS
-        sync: false
-      - key: BLOCKCHAIN_PRIVATE_KEY
-        sync: false
-      - key: BLOCKCHAIN_EXPLORER_URL
-        sync: false
-      - key: BLOCKCHAIN_NETWORK
-        value: amoy
-      - key: BLOCKCHAIN_RECEIPT_TIMEOUT
-        value: "30"
-      - key: REVIEW_API_KEY
-        generateValue: true
+      - fromGroup: agentmesh-production
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: agentmesh-redis
+          property: connectionString
+
+  - type: worker
+    name: agentmesh-worker
+    runtime: docker
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: .
+    dockerCommand: celery -A api.worker.celery_app worker --loglevel=INFO --concurrency=2
+    plan: starter
+    autoDeployTrigger: checksPass
+    maxShutdownDelaySeconds: 120
+    envVars:
+      - fromGroup: agentmesh-production
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: agentmesh-redis
+          property: connectionString
+
+  - type: worker
+    name: agentmesh-scheduler
+    runtime: docker
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: .
+    dockerCommand: celery -A api.worker.celery_app beat --loglevel=INFO
+    plan: starter
+    autoDeployTrigger: checksPass
+    maxShutdownDelaySeconds: 60
+    envVars:
+      - fromGroup: agentmesh-production
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: agentmesh-redis
+          property: connectionString

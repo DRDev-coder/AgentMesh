@@ -62,12 +62,29 @@ class AgentOrchestrator:
         self.blockchain = blockchain or BlockchainLogger()
         self.agent_timeout = float(os.getenv("AGENT_TIMEOUT_SECONDS", "15"))
 
-    async def process(self, query: str, session_id: str) -> ChatResponse:
+    async def process(
+        self,
+        query: str,
+        session_id: str,
+        *,
+        sage: SageService | None = None,
+        guardian: GuardianService | None = None,
+        empath: EmpathService | None = None,
+        oracle: OracleService | None = None,
+        repository: SQLiteRepository | None = None,
+        include_prototype_notice: bool = True,
+        escalation_threshold: int | None = None,
+    ) -> ChatResponse:
+        sage_service = sage or self.sage
+        guardian_service = guardian or self.guardian
+        empath_service = empath or self.empath
+        oracle_service = oracle or self.oracle
+        target_repository = repository or self.repository
         states: dict[str, AgentState] = {}
         findings: dict[str, AgentFinding] = {}
 
         sage_output, sage_finding = await self._run_async(
-            "sage", lambda: self.sage.analyze(query)
+            "sage", lambda: sage_service.analyze(query)
         )
         states["sage"] = sage_finding.state
         findings["sage"] = sage_finding
@@ -75,11 +92,11 @@ class AgentOrchestrator:
         sources = sage_output.citations if sage_output else []
 
         guardian_task = self._run_async(
-            "guardian", lambda: self.guardian.analyze(query, draft)
+            "guardian", lambda: guardian_service.analyze(query, draft)
         )
-        empath_task = self._run_sync("empath", lambda: self.empath.analyze(query))
+        empath_task = self._run_sync("empath", lambda: empath_service.analyze(query))
         oracle_task = self._run_sync(
-            "oracle", lambda: self.oracle.analyze(draft, sources)
+            "oracle", lambda: oracle_service.analyze(draft, sources)
         )
         (guardian_output, guardian_finding), (
             empath_output,
@@ -109,6 +126,7 @@ class AgentOrchestrator:
             guardian=guardian_output,
             empath=empath_output,
             oracle=oracle_output,
+            escalation_threshold=escalation_threshold,
         )
         factual_answer = draft or self._unavailable_message()
         final_answer = self._select_response(
@@ -127,7 +145,7 @@ class AgentOrchestrator:
         if decision.create_escalation and decision.priority:
             try:
                 escalation = await asyncio.to_thread(
-                    self.repository.create_escalation,
+                    target_repository.create_escalation,
                     session_id=session_id,
                     query=query,
                     draft_answer=factual_answer,
@@ -136,10 +154,11 @@ class AgentOrchestrator:
                     agent_findings=serialized_findings,
                 )
                 escalation_ticket_id = escalation.ticket_id
-                final_answer += (
-                    f"\n\nPrototype human-review ticket: {escalation_ticket_id}. "
-                    "No bank employee is contacted automatically."
-                )
+                if include_prototype_notice:
+                    final_answer += (
+                        f"\n\nPrototype human-review ticket: {escalation_ticket_id}. "
+                        "No bank employee is contacted automatically."
+                    )
             except Exception:
                 decision = decision.model_copy(
                     update={
@@ -173,7 +192,7 @@ class AgentOrchestrator:
         decision_id: str | None = None
         try:
             decision_id = await asyncio.to_thread(
-                self.repository.create_decision,
+                target_repository.create_decision,
                 session_id=session_id,
                 query=query,
                 factual_answer=factual_answer,
@@ -218,7 +237,7 @@ class AgentOrchestrator:
             )
             try:
                 await asyncio.to_thread(
-                    self.repository.update_decision_audit,
+                    target_repository.update_decision_audit,
                     decision_id,
                     audit.model_dump(mode="json"),
                 )

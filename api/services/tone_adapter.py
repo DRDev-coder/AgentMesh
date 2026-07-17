@@ -9,6 +9,7 @@ class ToneAdapter:
         "APOLOGETIC": "I'm sorry this situation has been frustrating.",
         "PATIENT": "I can help make the policy clearer.",
         "FRIENDLY": "I'm glad you reached out.",
+        "EMPATHETIC": "I understand this situation may be difficult.",
     }
 
     def adapt(self, factual_answer: str, empath: EmpathOutput | None) -> str:

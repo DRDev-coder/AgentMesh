@@ -2,8 +2,7 @@ FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    KNOWLEDGE_BASE_PATH=/app/data/product_docs.json \
-    DATABASE_PATH=/app/state/agentmesh.db
+    KNOWLEDGE_BASE_PATH=/app/data/product_docs.json
 
 WORKDIR /app
 COPY api/requirements.txt /tmp/requirements.txt
@@ -14,6 +13,8 @@ COPY agents/ /app/agents/
 COPY consensus/ /app/consensus/
 COPY shared/ /app/shared/
 COPY data/ /app/data/
+COPY migrations/ /app/migrations/
+COPY alembic.ini /app/alembic.ini
 
 RUN addgroup --system agentmesh \
     && adduser --system --ingroup agentmesh agentmesh \
