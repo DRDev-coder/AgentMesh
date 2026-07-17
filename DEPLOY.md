@@ -1,58 +1,196 @@
 # Deployment Guide
 
-## Backend on Render (Free Tier)
+AgentMesh has one supported backend topology: a consolidated FastAPI service with a writable SQLite state directory. The React/Vite frontend is built and hosted separately. Redis, Chroma, and standalone agent services are not required. Native verification uses Python 3.11.
 
-1. Push code to GitHub
-2. Go to [dashboard.render.com](https://dashboard.render.com)
-3. Click **New +** → **Blueprint**
-4. Connect your GitHub repo
-5. Render will read `render.yaml` and auto-configure:
-   - Gateway API (Docker)
-   - Redis (free tier)
-6. Add environment variables in Render dashboard:
-   - `GROQ_API_KEY`
-   - `ALCHEMY_URL` (use `https://rpc.ankr.com/polygon_mumbai`)
-   - `CONTRACT_ADDRESS`
-   - `WALLET_ADDRESS`
-   - `PRIVATE_KEY`
-7. Deploy
+No public deployment URL is verified in this repository snapshot. Treat a deployment as complete only after testing the exact public backend and frontend URLs.
 
-**Note:** Agents (SAGE, GUARDIAN, EMPATH, ORACLE) run as separate Docker services. For Render's free tier limitations, you may need to deploy them as separate Web Services or run locally.
+## 1. Pre-deployment verification
 
-## Frontend on Vercel (Free Tier)
+Run from the repository root:
 
-### Option A: Vercel CLI
+```bash
+cp .env.example .env
+python -m pip install -r requirements-dev.txt
+python -m compileall agents api consensus shared evaluation
+python -m ruff check agents api consensus shared evaluation tests
+python -m pytest -v
+python evaluation/run_evaluation.py --no-write
+
+cd frontend
+npm install
+npm run build
+cd ..
+
+cd blockchain
+npm install
+npm test
+cd ..
+
+docker compose --env-file .env config --quiet
+```
+
+Do not proceed on a failed compile, lint, test, evaluation, frontend build, contract test, or Compose validation. Ordinary verification does not require Groq, RPC, or deployed-contract credentials.
+
+## 2. Local Docker backend
+
+Set at least a new `REVIEW_API_KEY` in `.env`. A Groq key is optional, and blockchain should remain disabled unless all of its settings are intentionally supplied.
+
+```bash
+docker compose up --build -d
+docker compose ps
+curl http://localhost:8000/healthz
+curl http://localhost:8000/readyz
+```
+
+With the Compose backend healthy, the opt-in HTTP test is:
+
+```bash
+RUN_FULL_STACK_TESTS=1 python -m pytest tests/test_full_stack_optional.py -v
+```
+
+Compose runs only `gateway`. Its named `agentmesh_state` volume is mounted at `/app/state`, where the container writes `/app/state/agentmesh.db`. The sample policy corpus is copied into the image at `/app/data/product_docs.json`.
+
+Inspect failures with:
+
+```bash
+docker compose logs gateway
+```
+
+Stop the backend without deleting the database:
+
+```bash
+docker compose down
+```
+
+`docker compose down --volumes` permanently deletes the prototype SQLite volume and should be used only when intentionally resetting demo data.
+
+## 3. Local frontend
+
+Vite reads environment files from `frontend/`, not the repository root. Create `frontend/.env.local` with only the public browser setting:
+
+```dotenv
+VITE_API_URL=http://localhost:8000/api/v1
+```
+
+Then run:
+
 ```bash
 cd frontend
 npm install
-vercel --prod
+npm run dev
 ```
 
-### Option B: GitHub Integration
-1. Push frontend folder to GitHub
-2. Go to [vercel.com](https://vercel.com)
-3. Import project
-4. Framework preset: **Vite**
-5. Set environment variable:
-   - `VITE_API_URL=https://your-render-gateway.onrender.com/api/v1`
-6. Deploy
+Do not place `REVIEW_API_KEY`, `GROQ_API_KEY`, wallet keys, or credential-bearing RPC URLs in a `VITE_` variable. Vite embeds such values in browser assets.
 
-## Local Hardhat Blockchain (Offline Demo)
+## 4. Render backend
 
-If you can't get test MATIC or RPC access:
+[render.yaml](render.yaml) defines one Docker web service with:
+
+- the repository root as Docker build context;
+- `api/Dockerfile` as the image definition;
+- `/readyz` as the health-check path;
+- a 1 GB persistent disk mounted at `/app/state`;
+- `DATABASE_PATH=/app/state/agentmesh.db`;
+- no Redis or standalone agent services.
+
+The Blueprint uses Render's `starter` service because a persistent disk is required for SQLite durability. Render persistent disks are not available to free web services; a disk-backed service cannot scale horizontally or use zero-downtime deploys. Confirm current constraints in the [Render persistent disk documentation](https://render.com/docs/disks).
+
+### Create the service
+
+1. Push the repository to a Git provider supported by Render.
+2. In Render, create a Blueprint and select this repository.
+3. Review the `agentmesh-api` service and attached disk before applying it.
+4. Supply the prompted environment values.
+5. Deploy and wait for `/readyz` to return a successful status.
+
+### Required Render values
+
+| Variable | Deployment guidance |
+| --- | --- |
+| `CORS_ORIGINS` | Exact public frontend origin, for example `https://agentmesh.example`. Use commas for multiple origins. |
+| `REVIEW_API_KEY` | Generated by the Blueprint. Store it in a secure operator secret store; do not put it in public frontend code. |
+| `GROQ_API_KEY` | Optional. Leave unset to use the local path. |
+
+The Blueprint provides safe defaults for the model name, knowledge path, database path, query limit, rate limit, and disabled blockchain flag.
+
+If blockchain is intentionally enabled, set all of `BLOCKCHAIN_RPC_URL`, `BLOCKCHAIN_CONTRACT_ADDRESS`, `BLOCKCHAIN_WALLET_ADDRESS`, and `BLOCKCHAIN_PRIVATE_KEY`; optionally set `BLOCKCHAIN_EXPLORER_URL`. Use dashboard secrets, never checked-in values. Enabling blockchain does not replace the persistent SQLite disk.
+
+### Backend smoke test
+
+Replace the placeholder with the actual Render hostname:
 
 ```bash
-cd blockchain
-npm install
+API_ORIGIN=https://your-agentmesh-api.onrender.com
 
-# Terminal 1: Start local node
-npx hardhat node
-
-# Terminal 2: Deploy contract
-npx hardhat run scripts/start-local.js --network localhost
-
-# Copy the printed CONTRACT_ADDRESS into your .env
-# Set ALCHEMY_URL=http://host.docker.internal:8545
+curl "$API_ORIGIN/healthz"
+curl "$API_ORIGIN/readyz"
+curl -X POST "$API_ORIGIN/api/v1/chat" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"How long will my refund take?"}'
 ```
 
-This gives you a fully functional blockchain on your laptop — perfect for hackathon judging.
+Record the deployment date, source revision, URLs, and smoke-test result before adding a public-deployment claim to submission material.
+
+## 5. Static frontend hosting
+
+The frontend can be deployed to Vercel or another Vite-compatible static host.
+
+Configure the frontend project with:
+
+- root directory: `frontend`;
+- install command: `npm install`;
+- build command: `npm run build`;
+- output directory: `dist`;
+- `VITE_API_URL=https://your-agentmesh-api.onrender.com/api/v1`.
+
+Build once locally with that API base before deploying:
+
+```bash
+cd frontend
+VITE_API_URL=https://your-agentmesh-api.onrender.com/api/v1 npm run build
+```
+
+Add the final frontend origin—not a path—to backend `CORS_ORIGINS`, redeploy the backend if needed, then test in a clean browser session.
+
+### Public end-to-end smoke test
+
+Verify all of the following against public URLs:
+
+- the browser loads without mixed-content or CORS errors;
+- `/healthz` and `/readyz` are successful;
+- a grounded policy question returns a citation and non-error decision;
+- a credential request is blocked by a deterministic finding;
+- an unsupported request is not normally approved;
+- an urgent case creates a review ticket;
+- a reviewer can retrieve and act on the ticket using the protected workflow;
+- a missing or failed optional blockchain connection does not break chat.
+
+## 6. Data durability and backup
+
+Only files written under `/app/state` survive a Render redeploy. Keep `DATABASE_PATH` under that mount. Render snapshots its disk, but application owners should still define an export, retention, restore-test, and deletion process before storing real customer content.
+
+The default SQLite design is single-instance. Do not add replicas or autoscaling around the same local database. Move to a managed relational database before horizontal scale or concurrent production review.
+
+Prototype review edits are length/schema-validated and attributed only to the shared review credential. They are not automatically rechecked by GUARDIAN or ORACLE, so operators must keep edits fact-preserving; production review requires identity, action history, and revalidation.
+
+For local Docker, back up the named volume using an operator-approved process. Never copy a live database without considering SQLite consistency; use SQLite's backup facilities or stop writes first.
+
+## 7. Readiness and troubleshooting
+
+`/healthz` answers whether the API process is alive. `/readyz` checks resources required to produce a valid decision, including readable policy data and writable application storage. Render and Compose use readiness, not liveness, for traffic health.
+
+Common failures:
+
+| Symptom | Check |
+| --- | --- |
+| `/readyz` returns non-success | Verify `KNOWLEDGE_BASE_PATH`, JSON validity, state-directory permissions, and SQLite initialization logs. |
+| Browser reports CORS failure | Set `CORS_ORIGINS` to the exact scheme and host of the deployed frontend; remove trailing paths. |
+| Frontend calls localhost after deployment | Rebuild with the public `VITE_API_URL`; it is embedded at build time. |
+| Review action is unauthorized | Confirm the server-side `REVIEW_API_KEY` and `X-Review-API-Key` request header; do not embed the key in a public client build. |
+| Hosted generation is unavailable | Check the optional Groq key/base/model and provider status. Core safety rules must still fail safely. |
+| SQLite data disappears | Confirm `DATABASE_PATH` is `/app/state/agentmesh.db` and the disk is attached at `/app/state`. |
+| Blockchain shows failed/disabled | Keep `BLOCKCHAIN_ENABLED=false` until all settings and contract/network compatibility are verified. Chat should still work. |
+
+## 8. Rollback
+
+Roll back the service image through the hosting provider without detaching or replacing the persistent disk. Schema changes should be backward compatible or accompanied by a tested migration/backup procedure. After rollback, repeat readiness, grounded-answer, security-block, unsupported-answer, and review-queue smoke tests.

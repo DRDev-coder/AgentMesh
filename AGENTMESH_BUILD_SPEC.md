@@ -1,4 +1,6 @@
 # AGENTMESH — COMPLETE BUILD SPECIFICATION
+
+> **Historical, non-authoritative brief:** This is the original generation specification and contains goals that were deliberately rejected or corrected during the July 2026 repair. It does not describe the current runtime. Use `README.md`, `ARCHITECTURE.md`, `IMPLEMENTATION_REPORT.md`, source code, and tests as the authoritative references.
 ## Master Prompt for AI Coding Agent
 ### FlowZint AI Hackathon 2026 | Zero-Budget Stack
 

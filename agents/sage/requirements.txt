@@ -1,6 +1,4 @@
 fastapi==0.111.0
 uvicorn[standard]==0.30.0
 pydantic==2.7.0
-groq==0.9.0
-chromadb-client==0.4.25
-requests==2.31.0
+httpx==0.27.0

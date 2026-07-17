@@ -1,32 +1,54 @@
 services:
   - type: web
-    name: agentmesh-gateway
+    name: agentmesh-api
     runtime: docker
     dockerfilePath: ./api/Dockerfile
+    dockerContext: .
+    plan: starter
+    autoDeployTrigger: checksPass
+    healthCheckPath: /readyz
+    disk:
+      name: agentmesh-state
+      mountPath: /app/state
+      sizeGB: 1
     envVars:
       - key: GROQ_API_KEY
         sync: false
-      - key: REDIS_HOST
-        fromService:
-          name: agentmesh-redis
-          type: redis
-          property: host
-      - key: REDIS_PORT
-        fromService:
-          name: agentmesh-redis
-          type: redis
-          property: port
-      - key: ALCHEMY_URL
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: GROQ_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: KNOWLEDGE_BASE_PATH
+        value: /app/data/product_docs.json
+      - key: RETRIEVAL_MIN_SCORE
+        value: "0.18"
+      - key: DATABASE_PATH
+        value: /app/state/agentmesh.db
+      - key: CORS_ORIGINS
         sync: false
-      - key: CONTRACT_ADDRESS
+      - key: QUERY_MAX_LENGTH
+        value: "4000"
+      - key: RATE_LIMIT_REQUESTS
+        value: "30"
+      - key: RATE_LIMIT_WINDOW_SECONDS
+        value: "60"
+      - key: AGENT_TIMEOUT_SECONDS
+        value: "15"
+      - key: BLOCKCHAIN_ENABLED
+        value: "false"
+      - key: BLOCKCHAIN_RPC_URL
         sync: false
-      - key: WALLET_ADDRESS
+      - key: BLOCKCHAIN_CONTRACT_ADDRESS
         sync: false
-      - key: PRIVATE_KEY
+      - key: BLOCKCHAIN_WALLET_ADDRESS
         sync: false
-    healthCheckPath: /api/v1/health
-
-  - type: redis
-    name: agentmesh-redis
-    plan: free
-    ipAllowList: []
+      - key: BLOCKCHAIN_PRIVATE_KEY
+        sync: false
+      - key: BLOCKCHAIN_EXPLORER_URL
+        sync: false
+      - key: BLOCKCHAIN_NETWORK
+        value: amoy
+      - key: BLOCKCHAIN_RECEIPT_TIMEOUT
+        value: "30"
+      - key: REVIEW_API_KEY
+        generateValue: true

@@ -1,4 +1,3 @@
-import pytest
 from agents.guardian.security_scanner import scan_query, scan_answer
 
 

@@ -1,26 +1,36 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
-from emotion_model import EmotionAnalyzer
 
-app = FastAPI()
-analyzer = EmotionAnalyzer()
+from agents.empath.service import EmpathService
+from shared.schemas import AgentRequest, AgentState, EmpathResponse
 
 
-class Query(BaseModel):
-    query: str
-    session_id: str
+app = FastAPI(title="AgentMesh EMPATH", version="2.0.0")
+service = EmpathService()
 
 
-@app.post("/analyze")
-async def analyze(q: Query):
-    result = analyzer.analyze(q.query)
-    return {
-        "agent": "empath",
-        "session_id": q.session_id,
-        "output": result
-    }
+@app.post("/analyze", response_model=EmpathResponse)
+async def analyze(request: AgentRequest) -> EmpathResponse:
+    try:
+        output = service.analyze(request.query)
+        return EmpathResponse(
+            session_id=request.session_id,
+            state=AgentState.AVAILABLE,
+            output=output,
+        )
+    except Exception:
+        return EmpathResponse(
+            session_id=request.session_id,
+            state=AgentState.MODEL_ERROR,
+            error="EMPATH analysis failed",
+        )
 
 
 @app.get("/health")
-async def health():
-    return {"status": "healthy", "agent": "empath"}
+@app.get("/healthz")
+async def health() -> dict:
+    return {"status": "alive", "agent": "empath"}
+
+
+@app.get("/readyz")
+async def readiness() -> dict:
+    return {"status": "ready", "agent": "empath"}

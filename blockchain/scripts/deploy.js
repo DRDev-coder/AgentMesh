@@ -1,11 +1,11 @@
 const hre = require("hardhat");
 
 async function main() {
-  const ConsensusLedger = await hre.ethers.getContractFactory("ConsensusLedger");
-  const ledger = await ConsensusLedger.deploy();
+  const DecisionLedger = await hre.ethers.getContractFactory("DecisionLedger");
+  const ledger = await DecisionLedger.deploy();
   await ledger.waitForDeployment();
 
-  console.log("ConsensusLedger deployed to:", await ledger.getAddress());
+  console.log("DecisionLedger deployed to:", await ledger.getAddress());
 }
 
 main().catch((error) => {
