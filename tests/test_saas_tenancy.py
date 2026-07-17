@@ -176,6 +176,32 @@ def test_workspace_document_release_and_tenant_decision_api(tmp_path: Path) -> N
     assert usage.json()["completed_decisions"] == 1
 
 
+def test_dashboard_playground_runs_without_visible_api_key(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        organization_id, workspace_id = _onboard(client)
+        _upload_and_publish(client, organization_id, workspace_id)
+        first = client.post(
+            f"/api/v1/organizations/{organization_id}/workspaces/{workspace_id}/playground/decisions",
+            headers={**_headers(), "Idempotency-Key": "playground-decision-001"},
+            json={"input": "How long can an unopened product be returned?"},
+        )
+        keys = client.get(
+            f"/api/v1/organizations/{organization_id}/workspaces/{workspace_id}/api-keys",
+            headers=_headers(),
+        )
+        usage = client.get(
+            f"/api/v1/organizations/{organization_id}/usage",
+            headers=_headers(),
+        )
+
+    assert first.status_code == 200, first.text
+    assert first.json()["usage_units"] == 1
+    assert first.json()["trace"]["knowledge_release_id"] is not None
+    assert any(key["name"] == "Dashboard playground" for key in keys.json())
+    assert all("secret" not in key for key in keys.json())
+    assert usage.json()["completed_decisions"] == 1
+
+
 def test_free_quota_is_atomic_and_requires_billing_for_overage(tmp_path: Path) -> None:
     with _client(tmp_path, free_decisions=2) as client:
         organization_id, workspace_id = _onboard(client)

@@ -18,8 +18,10 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 function localUser() {
+  const id = localStorage.getItem('agentmesh.dev.user')
+  if (!id) return null
   return {
-    id: localStorage.getItem('agentmesh.dev.user') || 'local-owner',
+    id,
     email: localStorage.getItem('agentmesh.dev.email') || 'owner@example.local',
   }
 }
@@ -95,6 +97,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     async signOut() {
       if (supabase) await supabase.auth.signOut()
+      else {
+        localStorage.removeItem('agentmesh.dev.user')
+        localStorage.removeItem('agentmesh.dev.email')
+        setDevelopmentUser(null)
+      }
       setSession(null)
     },
   }), [developmentUser, loading, session])

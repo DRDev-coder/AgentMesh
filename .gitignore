@@ -13,6 +13,7 @@ __pycache__/
 .ruff_cache/
 .hypothesis/
 .venv/
+.venv*/
 venv/
 ENV/
 env/

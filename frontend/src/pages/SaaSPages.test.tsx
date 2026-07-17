@@ -193,6 +193,29 @@ describe('KnowledgePage', () => {
     renderPage(KnowledgePage)
     expect(await screen.findByText('No workspace documents')).toBeInTheDocument()
   })
+
+  it('explains async processing and disables publishing until documents are ready', async () => {
+    mockFetchRoutes({
+      '/documents': [{
+        id: 'doc-1',
+        name: 'Returns Policy',
+        status: 'PROCESSING',
+        current_version: 1,
+        filename: 'returns.md',
+        media_type: 'text/markdown',
+        byte_size: 2048,
+        sha256: 'abc',
+        extraction_error: null,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      }],
+      '/knowledge-releases': [],
+    })
+    renderPage(KnowledgePage)
+
+    expect(await screen.findByText('Document processing is running.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /processing/i })).toBeDisabled()
+  })
 })
 
 /* ------------------------------------------------------------------ */
@@ -269,11 +292,12 @@ describe('DevelopersPage', () => {
 /* ------------------------------------------------------------------ */
 
 describe('PlaygroundPage', () => {
-  it('renders composer with key input and question textarea', () => {
+  it('renders composer without requiring a pasted API key', () => {
     renderPage(PlaygroundPage)
 
     expect(screen.getByText('Run the full council')).toBeInTheDocument()
-    expect(screen.getByText('Test API key')).toBeInTheDocument()
+    expect(screen.getByText('No API key required here.')).toBeInTheDocument()
+    expect(screen.queryByText('Test API key')).not.toBeInTheDocument()
     expect(screen.getByText('Customer question')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /run decision/i })).toBeDisabled()
     expect(screen.getByText('No result yet')).toBeInTheDocument()

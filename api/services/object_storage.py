@@ -50,6 +50,9 @@ class S3ObjectStorage(ObjectStorage):
         except ImportError as exc:
             raise RuntimeError("boto3 is required for S3 object storage") from exc
         self.bucket = settings.s3_bucket
+        self.put_options = {}
+        if not settings.s3_endpoint_url:
+            self.put_options["ServerSideEncryption"] = "AES256"
         self.client = boto3.client(
             "s3",
             endpoint_url=settings.s3_endpoint_url or None,
@@ -64,7 +67,7 @@ class S3ObjectStorage(ObjectStorage):
             Key=key,
             Body=content,
             ContentType=media_type,
-            ServerSideEncryption="AES256",
+            **self.put_options,
         )
 
     def get(self, key: str) -> bytes:

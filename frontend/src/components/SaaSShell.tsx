@@ -22,7 +22,7 @@ import { MeshMark } from './AppShell'
 
 const NAVIGATION = [
   { path: 'overview', label: 'Overview', description: 'Workspace pulse', icon: Gauge },
-  { path: 'playground', label: 'Playground', description: 'Test a decision', icon: MessageSquare },
+  { path: 'playground', label: 'Playground', description: 'Test a decision', icon: MessageSquare, roles: ['owner', 'admin', 'developer'] },
   { path: 'knowledge', label: 'Knowledge', description: 'Documents & releases', icon: BookOpen },
   { path: 'configuration', label: 'Configuration', description: 'Profile & controls', icon: SlidersHorizontal },
   { path: 'decisions', label: 'Decisions', description: 'Evidence records', icon: FileSearch },

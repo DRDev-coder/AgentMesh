@@ -105,6 +105,10 @@ export function KnowledgePage() {
   const documents = useQuery({
     queryKey: ['documents', context.workspace.id],
     queryFn: () => saasRequest<DocumentRecord[]>(`/organizations/${context.organization.id}/workspaces/${context.workspace.id}/documents`),
+    refetchInterval: (query) => {
+      const data = query.state.data as DocumentRecord[] | undefined
+      return data?.some((item) => item.status === 'PROCESSING') ? 1000 : false
+    },
   })
   const releases = useQuery({
     queryKey: ['knowledge-releases', context.workspace.id],
@@ -148,6 +152,8 @@ export function KnowledgePage() {
       await queryClient.invalidateQueries({ queryKey: ['workspaces', context.organization.id] })
     },
   })
+  const hasProcessingDocuments = documents.data?.some((item) => item.status === 'PROCESSING') ?? false
+  const hasPublishableDocuments = documents.data?.some((item) => ['READY_FOR_REVIEW', 'PUBLISHED'].includes(item.status)) ?? false
   return (
     <div className="saas-page knowledge-page">
       <ErrorNotice error={documents.error || releases.error || preview.error || upload.error || publish.error || archive.error || activate.error} />
@@ -158,7 +164,8 @@ export function KnowledgePage() {
         <button className="button primary" disabled={!file || upload.isPending} onClick={() => upload.mutate()}>{upload.isPending ? 'Processing…' : 'Upload document'}</button>
       </section>
       <section className="panel-card">
-        <header><div><p className="eyebrow">Knowledge inventory</p><h2>Documents</h2></div><button className="button primary small" disabled={!documents.data?.some((item) => ['READY_FOR_REVIEW', 'PUBLISHED'].includes(item.status)) || publish.isPending} onClick={() => publish.mutate()}><ShieldCheck size={14} />{publish.isPending ? 'Publishing…' : 'Publish release'}</button></header>
+        <header><div><p className="eyebrow">Knowledge inventory</p><h2>Documents</h2></div><button className="button primary small" disabled={!hasPublishableDocuments || hasProcessingDocuments || publish.isPending} onClick={() => publish.mutate()}><ShieldCheck size={14} />{hasProcessingDocuments ? 'Processing…' : publish.isPending ? 'Publishing…' : 'Publish release'}</button></header>
+        {hasProcessingDocuments && <div className="policy-warning compact"><RefreshCw size={17} className="spin" /><div><strong>Document processing is running.</strong><p>AgentMesh is extracting evidence now. This page refreshes automatically until the file is ready to publish.</p></div></div>}
         {!documents.data?.length ? <Empty title="No workspace documents">Upload approved policies or product documentation to begin.</Empty> : (
           <div className="resource-table-wrap"><table className="resource-table"><thead><tr><th>Document</th><th>Status</th><th>Size</th><th>Version</th><th>Updated</th><th /></tr></thead><tbody>{documents.data.map((item) => <tr key={item.id}><td><div className="resource-name"><FileText size={16} /><span><strong>{item.name}</strong><small>{item.filename}</small></span></div></td><td><span className={`state-pill ${item.status.toLowerCase()}`}>{item.status.replaceAll('_', ' ')}</span>{item.extraction_error && <small className="field-error">{item.extraction_error}</small>}</td><td>{item.byte_size ? `${(item.byte_size / 1024).toFixed(1)} KB` : '—'}</td><td>v{item.current_version}</td><td>{new Date(item.updated_at).toLocaleDateString()}</td><td><div className="table-actions"><button className="icon-button quiet" aria-label={`Preview ${item.name}`} onClick={() => setPreviewId(item.id)}><BookOpen size={15} /></button><button className="icon-button quiet" aria-label="Archive document" onClick={() => archive.mutate(item.id)}><Trash2 size={15} /></button></div></td></tr>)}</tbody></table></div>
         )}
@@ -289,19 +296,31 @@ export function DevelopersPage() {
 
 export function PlaygroundPage() {
   const context = useWorkspace()
-  const [apiKey, setApiKey] = useState(() => sessionStorage.getItem(`agentmesh.key.${context.workspace.id}`) || '')
+  const queryClient = useQueryClient()
   const [input, setInput] = useState('')
   const [decision, setDecision] = useState<DecisionRecord | null>(null)
   const mutation = useMutation({
-    mutationFn: () => saasRequest<DecisionRecord>('/decisions', { method: 'POST', apiKey, idempotencyKey: crypto.randomUUID(), body: { input } }),
-    onSuccess: (value) => setDecision(value),
+    mutationFn: () => saasRequest<DecisionRecord>(
+      `/organizations/${context.organization.id}/workspaces/${context.workspace.id}/playground/decisions`,
+      {
+        method: 'POST',
+        idempotencyKey: crypto.randomUUID(),
+        body: { input },
+      },
+    ),
+    onSuccess: async (value) => {
+      setDecision(value)
+      await queryClient.invalidateQueries({ queryKey: ['decisions', context.workspace.id] })
+      await queryClient.invalidateQueries({ queryKey: ['usage', context.organization.id] })
+      await queryClient.invalidateQueries({ queryKey: ['reviews', context.workspace.id] })
+    },
   })
   return (
     <div className="saas-page playground-page">
       <ErrorNotice error={mutation.error} />
       <div className="playground-grid">
-        <section className="panel-card playground-composer"><header><div><p className="eyebrow">Test environment</p><h2>Run the full council</h2></div></header><label><span>Test API key</span><input type="password" value={apiKey} onChange={(event) => { setApiKey(event.target.value); sessionStorage.setItem(`agentmesh.key.${context.workspace.id}`, event.target.value) }} placeholder="am_test_…" /></label><label><span>Customer question</span><textarea rows={8} maxLength={4000} value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ask a question covered by your uploaded knowledge…" /></label><div className="composer-actions"><small>{input.length} / 4000</small><button className="button primary" disabled={!apiKey || !input.trim() || mutation.isPending} onClick={() => mutation.mutate()}>{mutation.isPending ? 'Council reviewing…' : 'Run decision'}<Send size={14} /></button></div></section>
-        <aside className="panel-card playground-result"><header><div><p className="eyebrow">Latest result</p><h2>Approved output</h2></div></header>{!decision ? <Empty title="No result yet">Your answer, state, citations, and trace will appear here.</Empty> : <><span className={`decision-badge ${decision.decision_state === 'APPROVED' ? 'success' : 'warning'}`}>{decision.decision_state}</span><p className="decision-answer">{decision.answer}</p><dl className="compact-definition-list"><div><dt>Decision</dt><dd>{decision.decision_reason}</dd></div><div><dt>Usage</dt><dd>{decision.usage_units} unit</dd></div><div><dt>Record</dt><dd><code>{decision.id}</code></dd></div></dl><details className="decision-evidence"><summary>Evidence ({decision.citations?.length || 0})</summary>{decision.citations?.map((citation) => <blockquote key={citation.chunk_id}>{citation.text}<cite>{citation.metadata.filename as string || citation.document_id}</cite></blockquote>)}</details></>}</aside>
+        <section className="panel-card playground-composer"><header><div><p className="eyebrow">Dashboard test environment</p><h2>Run the full council</h2></div></header><div className="policy-warning compact"><KeyRound size={17} /><div><strong>No API key required here.</strong><p>AgentMesh uses this signed-in workspace and creates a scoped test credential behind the scenes for audit and usage tracking.</p></div></div><label><span>Customer question</span><textarea rows={8} maxLength={4000} value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ask a question covered by your uploaded knowledge..." /></label><div className="composer-actions"><small>{input.length} / 4000</small><button className="button primary" disabled={!input.trim() || mutation.isPending} onClick={() => mutation.mutate()}>{mutation.isPending ? 'Council reviewing...' : 'Run decision'}<Send size={14} /></button></div></section>
+        <aside className="panel-card playground-result"><header><div><p className="eyebrow">Latest result</p><h2>{decision ? decision.decision_state : 'Decision output'}</h2></div></header>{!decision ? <Empty title="No result yet">Your answer, state, citations, and trace will appear here.</Empty> : <><span className={`decision-badge ${decision.decision_state === 'APPROVED' ? 'success' : 'warning'}`}>{decision.decision_state}</span><p className="decision-answer">{decision.answer}</p><dl className="compact-definition-list"><div><dt>Decision</dt><dd>{decision.decision_reason}</dd></div><div><dt>Usage</dt><dd>{decision.usage_units} unit</dd></div><div><dt>Record</dt><dd><code>{decision.id}</code></dd></div></dl><details className="decision-evidence"><summary>Evidence ({decision.citations?.length || 0})</summary>{decision.citations?.map((citation) => <blockquote key={citation.chunk_id}>{citation.text}<cite>{citation.metadata.filename as string || citation.document_id}</cite></blockquote>)}</details><details className="decision-evidence"><summary>Agent trace</summary><pre>{JSON.stringify(decision.trace?.agent_findings || {}, null, 2)}</pre></details></>}</aside>
       </div>
     </div>
   )

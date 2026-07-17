@@ -73,14 +73,14 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
     resolver: zodResolver(credentialsSchema),
   })
 
-  if (auth.user && !auth.developmentMode) return <Navigate to="/" replace />
+  if (auth.user) return <Navigate to="/dashboard" replace />
 
   const submit = handleSubmit(async (values) => {
     setError(null)
     try {
       if (mode === 'login') await auth.signIn(values.email, values.password)
       else await auth.signUp(values.email, values.password, captchaToken || undefined)
-      navigate(mode === 'signup' ? '/verify' : '/')
+      navigate(mode === 'signup' && !auth.developmentMode ? '/verify' : '/dashboard')
     } catch (value) {
       setError(value instanceof Error ? value.message : 'Authentication failed.')
     }

@@ -16,7 +16,7 @@ function renderLogin() {
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<AuthPage mode="login" />} />
-            <Route path="/" element={<div>Dashboard destination</div>} />
+            <Route path="/dashboard" element={<div>Dashboard destination</div>} />
           </Routes>
         </AuthProvider>
       </MemoryRouter>

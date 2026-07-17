@@ -279,6 +279,14 @@ def embedding(text: str) -> list[float]:
     return [round(value / magnitude, 8) for value in vector]
 
 
+def _embedding_values(value: object) -> list[float]:
+    if value is None:
+        return []
+    if hasattr(value, "tolist"):
+        value = value.tolist()
+    return [float(item) for item in value]
+
+
 def process_document_version(
     session: Session,
     storage: ObjectStorage,
@@ -619,7 +627,7 @@ def retrieve_sources(
     for chunk in chunks:
         chunk_tokens = set(re.findall(r"[a-z0-9]{2,}", chunk.text.lower()))
         lexical = len(query_tokens & chunk_tokens) / max(len(query_tokens), 1)
-        vector = chunk.embedding or []
+        vector = _embedding_values(chunk.embedding)
         cosine = sum(a * b for a, b in zip(query_embedding, vector, strict=False))
         score = max(0.0, min(1.0, (0.65 * lexical) + (0.35 * max(0.0, cosine))))
         if score > 0.05:

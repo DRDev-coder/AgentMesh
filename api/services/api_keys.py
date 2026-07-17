@@ -86,6 +86,59 @@ def create_key(
     )
 
 
+def get_or_create_playground_principal(
+    session: Session,
+    settings: Settings,
+    context: TenantContext,
+) -> APIKeyPrincipal:
+    key = session.scalar(
+        select(APIKey).where(
+            APIKey.organization_id == context.organization_id,
+            APIKey.workspace_id == context.workspace_id,
+            APIKey.environment == "test",
+            APIKey.name == "Dashboard playground",
+            APIKey.status == "ACTIVE",
+        )
+    )
+    if key is None:
+        public_id = secrets.token_urlsafe(9)[:12]
+        secret = secrets.token_urlsafe(32)
+        key = APIKey(
+            organization_id=context.organization_id,
+            workspace_id=context.workspace_id,
+            public_id=public_id,
+            secret_digest=_digest(settings, secret),
+            name="Dashboard playground",
+            environment="test",
+            scopes=["decisions:write", "decisions:read", "traces:read"],
+            last_four=secret[-4:],
+            status="ACTIVE",
+            created_by=context.actor_id,
+        )
+        session.add(key)
+        session.flush()
+        record_audit(
+            session,
+            context,
+            "api_key.created",
+            "api_key",
+            key.id,
+            {
+                "name": key.name,
+                "environment": key.environment,
+                "scopes": key.scopes,
+                "source": "dashboard_playground",
+            },
+        )
+    return APIKeyPrincipal(
+        key_id=key.id,
+        organization_id=key.organization_id,
+        workspace_id=key.workspace_id,
+        environment=key.environment,
+        scopes=frozenset(key.scopes),
+    )
+
+
 def list_keys(
     session: Session, organization_id: str, workspace_id: str
 ) -> list[APIKeyView]:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import uuid
+
 from fastapi import APIRouter, Depends, Header, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -13,7 +15,7 @@ from api.saas_schemas import (
     PublicDecisionResponse,
 )
 from api.services import decisions as decision_service
-from api.services.api_keys import authenticate_key
+from api.services.api_keys import authenticate_key, get_or_create_playground_principal
 from api.tenancy import get_db_session, set_tenant_database_context, workspace_context
 
 
@@ -46,6 +48,41 @@ async def create_decision(
         orchestrator=request.app.state.orchestrator,
         key=key,
         idempotency_key=idempotency_key,
+        payload=payload,
+    )
+
+
+@router.post(
+    "/organizations/{organization_id}/workspaces/{workspace_id}/playground/decisions",
+    response_model=PublicDecisionResponse,
+)
+async def create_playground_decision(
+    organization_id: str,
+    workspace_id: str,
+    payload: PublicDecisionRequest,
+    request: Request,
+    idempotency_key: str | None = Header(
+        default=None,
+        min_length=8,
+        max_length=128,
+        alias="Idempotency-Key",
+    ),
+    session: Session = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
+) -> PublicDecisionResponse:
+    context = workspace_context(
+        organization_id, workspace_id, "playground:use", session, principal
+    )
+    key = get_or_create_playground_principal(
+        session, request.app.state.settings, context
+    )
+    return await decision_service.create_decision(
+        session=session,
+        database=request.app.state.database,
+        settings=request.app.state.settings,
+        orchestrator=request.app.state.orchestrator,
+        key=key,
+        idempotency_key=idempotency_key or f"playground-{uuid.uuid4()}",
         payload=payload,
     )
 

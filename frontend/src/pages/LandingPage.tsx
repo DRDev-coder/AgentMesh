@@ -90,28 +90,28 @@ const AGENTS = [
   {
     name: 'SAGE',
     tagline: 'Knowledge retrieval',
-    description: 'Retrieves relevant policy documents from your knowledge base and drafts evidence-grounded answers using RAG.',
+    description: 'Retrieves approved workspace knowledge and drafts evidence-grounded support answers.',
     icon: BookOpen,
     accent: '#3b82f6',
   },
   {
     name: 'GUARDIAN',
     tagline: 'Security enforcement',
-    description: 'Applies deterministic regex rules and AI classification to block credential leaks, phishing, and manipulation.',
+    description: 'Applies non-overridable safety rules for credentials, prompt injection, phishing, and unsafe actions.',
     icon: Shield,
     accent: '#ea3323',
   },
   {
     name: 'EMPATH',
     tagline: 'Emotional intelligence',
-    description: 'Combines DistilBERT sentiment analysis with keyword rules to detect urgency, frustration, and set response tone.',
+    description: 'Detects urgency and frustration so safe answers can use the right tone or move to review.',
     icon: Sparkles,
     accent: '#a855f7',
   },
   {
     name: 'ORACLE',
-    tagline: 'Hallucination detection',
-    description: 'Generates a second independent answer, compares embedding similarity, and flags inconsistencies or hallucination.',
+    tagline: 'Evidence verification',
+    description: 'Checks material draft claims against the exact retrieved evidence before approval.',
     icon: Eye,
     accent: '#f59e0b',
   },
@@ -119,8 +119,8 @@ const AGENTS = [
 
 const STEPS = [
   { number: '01', title: 'Submit query', description: 'A customer or API sends a support question to your AgentMesh endpoint.' },
-  { number: '02', title: 'Council deliberates', description: 'Four specialized agents independently analyze the query across knowledge, safety, emotion, and accuracy.' },
-  { number: '03', title: 'Verified answer', description: 'Consensus engine requires agent agreement before delivering an evidence-grounded, safety-checked response.' },
+  { number: '02', title: 'Pipeline reviews', description: 'AgentMesh retrieves evidence, drafts an answer, checks safety, verifies claims, and reads customer urgency.' },
+  { number: '03', title: 'Decision returned', description: 'The deterministic policy approves, rewrites, blocks, asks for clarification, or escalates with a trace.' },
 ]
 
 /* ------------------------------------------------------------------ */
@@ -154,20 +154,20 @@ export default function LandingPage() {
           <p className="eyebrow">Decision infrastructure for support teams</p>
           <h1>Every answer carries its evidence and its risk decision.</h1>
           <p className="landing-hero-subtitle">
-            Four AI agents deliberate on every customer query — enforcing safety controls, grounding answers in your knowledge base, and delivering responses you can trust.
+            Four specialist checks run on every customer query, enforcing safety controls, grounding answers in your knowledge base, and returning a decision you can inspect.
           </p>
           <div className="landing-hero-actions">
             <Link to="/signup" className="button primary">
               Start building free <ArrowRight size={15} />
             </Link>
             <Link to="/login" className="button secondary">
-              View live demo <ChevronRight size={15} />
+              Sign in to dashboard <ChevronRight size={15} />
             </Link>
           </div>
           <ul className="landing-hero-checks">
             <li><CheckCircle2 size={14} /> 500 decisions included monthly</li>
             <li><CheckCircle2 size={14} /> No credit card required</li>
-            <li><CheckCircle2 size={14} /> SOC 2 compliant architecture</li>
+            <li><CheckCircle2 size={14} /> Test playground included</li>
           </ul>
         </div>
         <div className="landing-hero-visual">
@@ -190,7 +190,7 @@ export default function LandingPage() {
         <div className="landing-section-header">
           <p className="eyebrow">The agent council</p>
           <h2>Four specialists. One verified answer.</h2>
-          <p>Each query passes through four independent AI agents before a consensus engine approves the final response.</p>
+          <p>Each query passes through retrieval, safety, evidence, and tone checks before the decision policy approves the final response.</p>
         </div>
         <div className="landing-features-grid">
           {AGENTS.map((agent) => {
@@ -262,12 +262,13 @@ export default function LandingPage() {
         <div className="landing-integration-content">
           <p className="eyebrow">Developer-first</p>
           <h2>One API key. Full council access.</h2>
-          <p>Integrate AgentMesh into your existing support stack with a single API call. Every response includes the full evidence trail — agent findings, citations, risk scores, and consensus metadata.</p>
+          <p>Integrate AgentMesh into your existing support stack with a single API call. Every response includes the evidence trail, agent findings, citations, decision state, and usage unit.</p>
           <div className="landing-code-block">
             <code>
-              <span className="code-keyword">curl</span> -X POST https://api.agentmesh.dev/v1/decisions \{'\n'}
-              {'  '}-H <span className="code-string">"Authorization: Bearer amk_live_..."</span> \{'\n'}
-              {'  '}-d <span className="code-string">'{`{"query": "How do I dispute a charge?"}`}'</span>
+              <span className="code-keyword">curl</span> -X POST https://api.agentmesh.dev/api/v1/decisions \{'\n'}
+              {'  '}-H <span className="code-string">"Authorization: Bearer am_live_public.secret"</span> \{'\n'}
+              {'  '}-H <span className="code-string">"Idempotency-Key: request-001"</span> \{'\n'}
+              {'  '}-d <span className="code-string">'{`{"input": "How do I dispute a charge?"}`}'</span>
             </code>
           </div>
           <Link to="/signup" className="button primary">

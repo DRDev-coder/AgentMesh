@@ -30,6 +30,7 @@ ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
             "usage:read",
             "keys:manage",
             "webhooks:manage",
+            "playground:use",
         }
     ),
     "developer": frozenset(

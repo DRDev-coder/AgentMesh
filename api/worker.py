@@ -59,6 +59,8 @@ def enqueue_document(document_version_id: str) -> None:
 
 @celery_app.task(name="agentmesh.report_meter_events")
 def report_usage_to_stripe() -> int:
+    if not settings.stripe_secret_key:
+        return 0
     database = Database(settings)
     try:
         return report_meter_events(database, settings)

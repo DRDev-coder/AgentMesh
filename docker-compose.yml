@@ -144,7 +144,7 @@ services:
     build:
       context: .
       dockerfile: api/Dockerfile
-    command: celery -A api.worker.celery_app beat --loglevel=INFO
+    command: celery -A api.worker.celery_app beat --loglevel=INFO --schedule=/tmp/celerybeat-schedule
     environment: *api-environment
     depends_on:
       migrate:
