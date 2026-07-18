@@ -10,14 +10,67 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.exc import DBAPIError
 
 from api.config import get_settings
+from api.auth import Principal
 from api.db.base import Database
 from api.errors import APIError
+from api.saas_schemas import OrganizationCreate
+from api.services.tenants import create_organization
 from api.services.usage import reserve_usage
 from api.tenancy import set_tenant_database_context
 
 
 RLS_URL = os.getenv("RLS_TEST_DATABASE_URL")
 ADMIN_URL = os.getenv("DATABASE_URL")
+
+
+@pytest.mark.skipif(not RLS_URL or not ADMIN_URL, reason="PostgreSQL RLS test URLs are not configured")
+def test_restricted_role_can_bootstrap_an_organization_and_workspace() -> None:
+    user_id = f"rls-onboarding-{uuid.uuid4()}"
+    settings = replace(
+        get_settings(),
+        environment="test",
+        auth_mode="development",
+        database_url=RLS_URL,
+    )
+    database = Database(settings)
+    organization_id: str | None = None
+    try:
+        with database.session() as session:
+            organization, workspace = create_organization(
+                session,
+                Principal(
+                    user_id=user_id,
+                    email=f"{user_id}@example.com",
+                    email_verified=True,
+                    assurance_level="aal1",
+                ),
+                OrganizationCreate(
+                    name="RLS onboarding",
+                    workspace_name="Support",
+                    industry_template="GENERAL",
+                ),
+            )
+            organization_id = organization.id
+            assert workspace.organization_id == organization.id
+    finally:
+        database.dispose()
+        admin = create_engine(ADMIN_URL)
+        try:
+            with admin.begin() as connection:
+                connection.execute(
+                    text("SELECT set_config('app.allow_audit_purge', 'true', true)")
+                )
+                if organization_id:
+                    connection.execute(
+                        text("DELETE FROM organizations WHERE id = :id"),
+                        {"id": organization_id},
+                    )
+                connection.execute(
+                    text("DELETE FROM user_profiles WHERE auth_user_id = :user_id"),
+                    {"user_id": user_id},
+                )
+        finally:
+            admin.dispose()
 
 
 @pytest.mark.skipif(not RLS_URL or not ADMIN_URL, reason="PostgreSQL RLS test URLs are not configured")

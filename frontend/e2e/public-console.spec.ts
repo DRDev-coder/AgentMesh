@@ -8,7 +8,9 @@ for (const route of routes) {
     const failedResponses: string[] = []
 
     page.on('console', (message) => {
-      if (message.type() === 'error') {
+      const missingTurnstileWidget =
+        message.type() === 'warning' && message.text().includes('Cannot find Widget')
+      if (message.type() === 'error' || missingTurnstileWidget) {
         const source = message.location().url || 'unknown source'
         const knownTurnstileFormattingNoise =
           source.startsWith('https://challenges.cloudflare.com/') &&
@@ -31,6 +33,10 @@ for (const route of routes) {
     const response = await page.goto(route, { waitUntil: 'domcontentloaded' })
     expect(response?.status()).toBeLessThan(400)
     await page.waitForTimeout(route === '/signup' ? 4_000 : 750)
+    if (route === '/signup') {
+      await page.getByRole('link', { name: 'Sign in' }).click()
+      await page.waitForTimeout(500)
+    }
 
     expect(browserErrors, `Console errors on ${route}`).toEqual([])
     expect(failedResponses, `Failed network responses on ${route}`).toEqual([])

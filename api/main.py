@@ -86,23 +86,6 @@ def create_app(
     application.state.saas_enabled = enable_saas
     application.state.rate_limiter = DistributedRateLimiter(settings)
     application.add_middleware(InMemoryRateLimitMiddleware)
-    application.add_middleware(
-        CORSMiddleware,
-        allow_origins=_cors_origins(settings),
-        allow_credentials=False,
-        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=[
-            "Authorization",
-            "Content-Type",
-            "Idempotency-Key",
-            "X-Razorpay-Signature",
-            "X-Razorpay-Event-Id",
-            "X-Dev-User",
-            "X-Dev-Email",
-            "X-Dev-AAL",
-            "X-Review-API-Key",
-        ],
-    )
     application.include_router(chat_router, prefix="/api/v1")
     application.include_router(health_router, prefix="/api/v1")
     application.include_router(health_router)
@@ -124,7 +107,19 @@ def create_app(
     @application.middleware("http")
     async def request_context(request: Request, call_next):
         request.state.request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        except Exception as exc:
+            logger.exception(
+                "Unhandled API error request_id=%s path=%s type=%s",
+                request.state.request_id,
+                request.url.path,
+                type(exc).__name__,
+            )
+            response = JSONResponse(
+                error_payload(request, "internal_error", "Internal server error."),
+                status_code=500,
+            )
         response.headers["X-Request-ID"] = request.state.request_id
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
@@ -139,22 +134,28 @@ def create_app(
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         return response
 
+    # Keep CORS outside the request middleware so even sanitized 500 responses
+    # receive the configured origin header instead of being masked as CORS failures.
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_origins(settings),
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "Idempotency-Key",
+            "X-Razorpay-Signature",
+            "X-Razorpay-Event-Id",
+            "X-Dev-User",
+            "X-Dev-Email",
+            "X-Dev-AAL",
+            "X-Review-API-Key",
+        ],
+    )
+
     application.add_exception_handler(APIError, api_error_handler)
     application.add_exception_handler(RequestValidationError, validation_error_handler)
-
-    @application.exception_handler(Exception)
-    async def unhandled_error(request: Request, exc: Exception):
-        request_id = str(uuid.uuid4())
-        logger.exception(
-            "Unhandled API error request_id=%s path=%s type=%s",
-            request_id,
-            request.url.path,
-            type(exc).__name__,
-        )
-        return JSONResponse(
-            error_payload(request, "internal_error", "Internal server error."),
-            status_code=500,
-        )
 
     @application.get("/")
     async def root() -> dict:

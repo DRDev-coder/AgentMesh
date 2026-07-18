@@ -53,10 +53,20 @@ function SignupCaptcha({
   const container = React.useRef<HTMLDivElement>(null)
   React.useEffect(() => {
     if (!captchaSiteKey || !container.current) return
+    let widgetId: string | null = null
+    const removeWidget = () => {
+      if (!widgetId || !window.turnstile) return
+      try {
+        window.turnstile.remove(widgetId)
+      } catch {
+        // The widget may already have removed itself after navigation.
+      }
+      widgetId = null
+    }
     const renderWidget = () => {
       if (!window.turnstile || !container.current || container.current.dataset.rendered) return
       try {
-        const widgetId = window.turnstile.render(container.current, {
+        widgetId = window.turnstile.render(container.current, {
           sitekey: captchaSiteKey,
           callback: (token) => {
             onError(null)
@@ -81,7 +91,10 @@ function SignupCaptcha({
     if (existing) {
       existing.addEventListener('load', renderWidget)
       renderWidget()
-      return () => existing.removeEventListener('load', renderWidget)
+      return () => {
+        existing.removeEventListener('load', renderWidget)
+        removeWidget()
+      }
     }
     const script = document.createElement('script')
     script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
@@ -97,6 +110,7 @@ function SignupCaptcha({
     return () => {
       script.removeEventListener('load', renderWidget)
       script.removeEventListener('error', handleScriptError)
+      removeWidget()
     }
   }, [onError, onToken])
   if (!captchaSiteKey) return <div className="alert danger">Signup CAPTCHA is not configured.</div>

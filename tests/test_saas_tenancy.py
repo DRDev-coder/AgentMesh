@@ -96,6 +96,24 @@ def test_cors_allows_configured_frontend_on_preflight_and_auth_error(
     assert unauthorized.headers["access-control-allow-origin"] == origin
 
 
+def test_cors_is_preserved_on_sanitized_internal_error(tmp_path: Path) -> None:
+    origin = "https://agentmesh-web.example.com"
+    settings = replace(_settings(tmp_path), cors_origins=(origin,))
+    database = Database(settings)
+    application = create_app(settings=settings, database=database, enable_saas=True)
+
+    @application.get("/test/internal-error")
+    def internal_error() -> None:
+        raise RuntimeError("test exception")
+
+    with TestClient(application, raise_server_exceptions=False) as client:
+        response = client.get("/test/internal-error", headers={"Origin": origin})
+
+    assert response.status_code == 500
+    assert response.headers["access-control-allow-origin"] == origin
+    assert response.json()["error"]["code"] == "internal_error"
+
+
 def _onboard(client: TestClient, user: str = "owner-1") -> tuple[str, str]:
     response = client.post(
         "/api/v1/organizations",

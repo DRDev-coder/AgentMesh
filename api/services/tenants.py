@@ -35,7 +35,7 @@ from api.saas_schemas import (
 )
 from api.services.audit import record_audit
 from api.services.email import queue_email
-from api.tenancy import TenantContext
+from api.tenancy import TenantContext, set_tenant_database_context
 
 
 TEMPLATE_DEFAULTS: dict[str, dict] = {
@@ -151,6 +151,7 @@ def create_organization(
     session.add(membership)
     session.add(BillingAccount(organization_id=organization.id))
     profile.created_free_organization = True
+    set_tenant_database_context(session, organization.id)
     workspace = _create_workspace_record(
         session,
         organization.id,
