@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from api.services.object_storage import S3ObjectStorage
+from api.services.object_storage import AzureBlobObjectStorage, S3ObjectStorage
 
 
 class _FakeS3Client:
@@ -55,3 +55,59 @@ def test_s3_storage_omits_server_side_encryption_for_custom_endpoint(monkeypatch
 
     assert fake_client.put_payload is not None
     assert "ServerSideEncryption" not in fake_client.put_payload
+
+
+class _FakeDownload:
+    def readall(self) -> bytes:
+        return b"stored policy"
+
+
+class _FakeAzureContainer:
+    def __init__(self) -> None:
+        self.upload_payload: dict[str, object] | None = None
+        self.deleted: tuple[str, str] | None = None
+
+    def upload_blob(self, **kwargs: object) -> None:
+        self.upload_payload = kwargs
+
+    def download_blob(self, key: str) -> _FakeDownload:
+        assert key == "documents/policy.txt"
+        return _FakeDownload()
+
+    def delete_blob(self, key: str, *, delete_snapshots: str) -> None:
+        self.deleted = (key, delete_snapshots)
+
+
+def test_azure_blob_storage_round_trip_contract() -> None:
+    storage = AzureBlobObjectStorage.__new__(AzureBlobObjectStorage)
+    storage.container = _FakeAzureContainer()
+    storage.content_settings = lambda **kwargs: kwargs
+    storage.resource_not_found_error = RuntimeError
+
+    storage.put("documents/policy.txt", b"policy", "text/plain")
+
+    assert storage.container.upload_payload == {
+        "name": "documents/policy.txt",
+        "data": b"policy",
+        "overwrite": True,
+        "content_settings": {"content_type": "text/plain"},
+    }
+    assert storage.get("documents/policy.txt") == b"stored policy"
+
+    storage.delete("documents/policy.txt")
+    assert storage.container.deleted == ("documents/policy.txt", "include")
+
+
+def test_azure_blob_delete_is_idempotent() -> None:
+    class MissingBlob(Exception):
+        pass
+
+    class MissingContainer(_FakeAzureContainer):
+        def delete_blob(self, key: str, *, delete_snapshots: str) -> None:
+            raise MissingBlob
+
+    storage = AzureBlobObjectStorage.__new__(AzureBlobObjectStorage)
+    storage.container = MissingContainer()
+    storage.resource_not_found_error = MissingBlob
+
+    storage.delete("documents/missing.txt")

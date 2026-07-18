@@ -77,7 +77,53 @@ class S3ObjectStorage(ObjectStorage):
         self.client.delete_object(Bucket=self.bucket, Key=key)
 
 
+class AzureBlobObjectStorage(ObjectStorage):
+    def __init__(self, settings: Settings):
+        try:
+            from azure.core.exceptions import ResourceNotFoundError
+            from azure.identity import DefaultAzureCredential
+            from azure.storage.blob import BlobServiceClient, ContentSettings
+        except ImportError as exc:
+            raise RuntimeError(
+                "azure-identity and azure-storage-blob are required for Azure Blob Storage"
+            ) from exc
+
+        if settings.azure_storage_connection_string:
+            service = BlobServiceClient.from_connection_string(
+                settings.azure_storage_connection_string
+            )
+        elif settings.azure_storage_account_url:
+            service = BlobServiceClient(
+                account_url=settings.azure_storage_account_url,
+                credential=DefaultAzureCredential(),
+            )
+        else:
+            raise RuntimeError("Azure Blob Storage configuration is incomplete")
+        self.container = service.get_container_client(settings.azure_storage_container)
+        self.content_settings = ContentSettings
+        self.resource_not_found_error = ResourceNotFoundError
+
+    def put(self, key: str, content: bytes, media_type: str) -> None:
+        self.container.upload_blob(
+            name=key,
+            data=content,
+            overwrite=True,
+            content_settings=self.content_settings(content_type=media_type),
+        )
+
+    def get(self, key: str) -> bytes:
+        return self.container.download_blob(key).readall()
+
+    def delete(self, key: str) -> None:
+        try:
+            self.container.delete_blob(key, delete_snapshots="include")
+        except self.resource_not_found_error:
+            pass
+
+
 def create_object_storage(settings: Settings) -> ObjectStorage:
     if settings.object_storage_backend == "s3":
         return S3ObjectStorage(settings)
+    if settings.object_storage_backend == "azure_blob":
+        return AzureBlobObjectStorage(settings)
     return LocalObjectStorage(settings.object_storage_path)

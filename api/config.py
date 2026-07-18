@@ -38,6 +38,9 @@ class Settings:
     s3_bucket: str
     s3_access_key_id: str
     s3_secret_access_key: str
+    azure_storage_account_url: str
+    azure_storage_connection_string: str
+    azure_storage_container: str
     api_key_pepper: str
     razorpay_key_id: str
     razorpay_key_secret: str
@@ -96,6 +99,15 @@ class Settings:
             s3_bucket=os.getenv("S3_BUCKET", "agentmesh-documents").strip(),
             s3_access_key_id=os.getenv("S3_ACCESS_KEY_ID", "").strip(),
             s3_secret_access_key=os.getenv("S3_SECRET_ACCESS_KEY", "").strip(),
+            azure_storage_account_url=os.getenv(
+                "AZURE_STORAGE_ACCOUNT_URL", ""
+            ).strip().rstrip("/"),
+            azure_storage_connection_string=os.getenv(
+                "AZURE_STORAGE_CONNECTION_STRING", ""
+            ).strip(),
+            azure_storage_container=os.getenv(
+                "AZURE_STORAGE_CONTAINER", "agentmesh-documents"
+            ).strip(),
             api_key_pepper=os.getenv(
                 "API_KEY_PEPPER", "development-only-agentmesh-pepper"
             ),
@@ -157,8 +169,22 @@ class Settings:
             raise RuntimeError("APP_ENV must be development, test, staging, or production")
         if self.auth_mode not in {"development", "supabase"}:
             raise RuntimeError("AUTH_MODE must be development or supabase")
-        if self.object_storage_backend not in {"local", "s3"}:
-            raise RuntimeError("OBJECT_STORAGE_BACKEND must be local or s3")
+        if self.object_storage_backend not in {"local", "s3", "azure_blob"}:
+            raise RuntimeError(
+                "OBJECT_STORAGE_BACKEND must be local, s3, or azure_blob"
+            )
+        if self.object_storage_backend == "s3" and not all(
+            [self.s3_bucket, self.s3_access_key_id, self.s3_secret_access_key]
+        ):
+            raise RuntimeError("S3 object storage credentials are incomplete")
+        if self.object_storage_backend == "azure_blob" and (
+            not self.azure_storage_container
+            or not (
+                self.azure_storage_connection_string
+                or self.azure_storage_account_url.startswith("https://")
+            )
+        ):
+            raise RuntimeError("Azure Blob Storage configuration is incomplete")
         if self.auth_mode == "supabase" and not self.supabase_url:
             raise RuntimeError("SUPABASE_URL is required when AUTH_MODE=supabase")
         if self.is_production:
@@ -178,12 +204,8 @@ class Settings:
                 raise RuntimeError("Production requires a strong API_KEY_PEPPER")
             if len(self.webhook_encryption_key) < 32 or self.webhook_encryption_key == "development-webhook-key":
                 raise RuntimeError("Production requires WEBHOOK_ENCRYPTION_KEY")
-            if self.object_storage_backend != "s3":
-                raise RuntimeError("Production requires private S3-compatible storage")
-            if not all(
-                [self.s3_bucket, self.s3_access_key_id, self.s3_secret_access_key]
-            ):
-                raise RuntimeError("Production requires private object storage credentials")
+            if self.object_storage_backend == "local":
+                raise RuntimeError("Production requires private object storage")
             if not self.public_app_url.startswith("https://"):
                 raise RuntimeError("Production requires an HTTPS PUBLIC_APP_URL")
             if not self.cors_origins or any(
