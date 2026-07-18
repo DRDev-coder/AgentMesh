@@ -6,9 +6,9 @@ The supported production topology is a static frontend, the FastAPI API with sep
 
 The budget deployment uses public GHCR images and Azure Container Apps Consumption with zero minimum replicas, one maximum replica, and no Log Analytics workspace. Both frontend and API run as scale-to-zero Container Apps because the student subscription's allowed-location policy has no overlap with Azure Static Web Apps regions. This keeps low-traffic Azure usage inside the platform free allowances and avoids the recurring Azure Container Registry charge.
 
-The first demo revision may use `APP_ENV=development`, eager tasks, SQLite, and local object storage so the UI/API can be reviewed before paid infrastructure is approved. That revision is ephemeral: scale-down or redeployment can erase application data and documents. It is not a production topology.
+The active student revision uses `APP_ENV=staging`, Supabase Auth, durable Supabase PostgreSQL with forced tenant RLS, and a restricted runtime role. Redis, one Celery worker, and Celery Beat run as sidecars in the API replica. Local document storage, Redis/task state, and the legacy SQLite compatibility database remain ephemeral; periodic jobs run only while HTTP traffic keeps the replica active. It is not a production topology.
 
-Before changing the Azure revision to `APP_ENV=production`, add a restricted non-superuser PostgreSQL application role, durable private object storage, managed Redis with `noeviction`, separate worker/scheduler deployment, malware scanning, backups, complete Razorpay settings, exact HTTPS origins, and all cost-control values.
+Before changing the Azure revision to `APP_ENV=production`, add durable private object storage, managed Redis with `noeviction`, separate worker/scheduler deployment, malware scanning, backups, complete Razorpay settings, exact HTTPS origins, and all cost-control values. Keep the existing restricted non-superuser PostgreSQL runtime role.
 
 ## 1. Pre-deployment gates
 
@@ -45,7 +45,7 @@ Run migrations with a role that owns the application schema:
 alembic upgrade head
 ```
 
-The runtime role needs CRUD privileges but should not be a PostgreSQL superuser, because superusers bypass RLS. The migration enables and forces tenant RLS policies. Keep connection pooling in transaction mode so transaction-local tenant settings cannot leak between requests.
+The runtime role needs CRUD privileges but should not be a PostgreSQL superuser, because superusers bypass RLS. The migration enables and forces tenant RLS policies. Azure Container Apps currently uses the free Supabase IPv4 session pooler on port `5432`; transaction-local tenant settings are reset at transaction boundaries. Use the direct owner connection only for migrations from an IPv6-capable trusted environment.
 
 ## 3. Razorpay
 

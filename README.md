@@ -34,7 +34,7 @@ Supabase: PostgreSQL + pgvector, Auth, private object storage, backups
 Razorpay: Subscriptions, usage add-ons, hosted authorization, signed webhooks
 ```
 
-The student staging deployment runs both frontend and API on Azure Container Apps Consumption scaled to zero. Its initial demo revision uses ephemeral SQLite/local storage and eager tasks to avoid paid Azure database, Redis, registry, and logging resources; see `infra/azure/README.md` for the production gap.
+The student staging deployment runs both frontend and API on Azure Container Apps Consumption scaled to zero. Tenant data is durable in the existing Supabase PostgreSQL database through a restricted RLS-enforced runtime role. Redis, Celery worker/Beat, local document storage, and the legacy SQLite compatibility database live inside the API replica, so queue and file state remain ephemeral. This avoids paid Azure database, Redis, registry, and logging resources; see `infra/azure/README.md` for the production gap and deployed URLs.
 
 Interactive decisions remain synchronous inside the modular monolith. Celery handles document ingestion, email, outbound webhooks, retention, source deletion, and Razorpay add-on delivery.
 
