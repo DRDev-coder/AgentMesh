@@ -17,7 +17,7 @@ from api.errors import APIError
 from api.saas_schemas import UsageSummary
 
 
-ACTIVE_BILLING_STATES = {"ACTIVE", "TRIALING"}
+ACTIVE_BILLING_STATES = {"ACTIVE", "AUTHENTICATED"}
 
 
 def period_key(now: datetime | None = None) -> str:
@@ -107,18 +107,18 @@ def reserve_usage(
     if (
         paid
         and organization
-        and organization.spend_cap_cents is not None
-        and settings.overage_unit_price_cents > 0
+        and organization.spend_cap_paise is not None
+        and settings.overage_unit_price_paise > 0
     ):
         projected_overage = max(
             0, next_ordinal - settings.free_decisions_per_month
-        ) * settings.overage_unit_price_cents
-        if projected_overage > organization.spend_cap_cents:
+        ) * settings.overage_unit_price_paise
+        if projected_overage > organization.spend_cap_paise:
             raise APIError(
                 402,
                 "spend_cap_reached",
                 "The organization monthly spend cap has been reached.",
-                details={"spend_cap_cents": organization.spend_cap_cents},
+                details={"spend_cap_paise": organization.spend_cap_paise},
             )
     reservation = UsageReservation(
         organization_id=organization_id,
@@ -155,22 +155,23 @@ def finalize_usage(
         period_key=reservation.period_key,
         units=1,
         billable_units=billable,
-        stripe_status="NOT_BILLABLE" if not billable else "PENDING",
+        razorpay_status="NOT_BILLABLE" if not billable else "PENDING",
     )
     session.add(usage)
     reservation.status = "FINALIZED"
     session.flush()
     if billable:
         billing = session.get(BillingAccount, reservation.organization_id)
-        if not billing or not billing.stripe_customer_id:
+        if not billing or not billing.razorpay_subscription_id:
             raise APIError(402, "billing_not_ready", "Billing is not ready for paid usage.")
         session.add(
             BillingOutbox(
                 organization_id=reservation.organization_id,
                 usage_event_id=usage.id,
                 payload={
-                    "event_name": settings.stripe_meter_event_name,
-                    "stripe_customer_id": billing.stripe_customer_id,
+                    "razorpay_subscription_id": billing.razorpay_subscription_id,
+                    "amount_paise": settings.overage_unit_price_paise,
+                    "currency": "INR",
                     "value": 1,
                     "identifier": usage.id,
                 },
@@ -199,21 +200,21 @@ def summary(
         remaining_free_decisions=max(0, settings.free_decisions_per_month - completed),
         billing_status=billing.status if billing else "FREE",
         payment_method_present=bool(billing and billing.payment_method_present),
-        spend_cap_cents=organization.spend_cap_cents if organization else None,
-        projected_overage_cents=(
+        spend_cap_paise=organization.spend_cap_paise if organization else None,
+        projected_overage_paise=(
             max(0, completed - settings.free_decisions_per_month)
-            * settings.overage_unit_price_cents
-            if settings.overage_unit_price_cents > 0
+            * settings.overage_unit_price_paise
+            if settings.overage_unit_price_paise > 0
             else None
         ),
     )
 
 
 def update_spend_cap(
-    session: Session, organization_id: str, spend_cap_cents: int | None
+    session: Session, organization_id: str, spend_cap_paise: int | None
 ) -> None:
     organization = session.get(Organization, organization_id)
     if organization is None:
         raise APIError(404, "not_found", "Organization not found.")
-    organization.spend_cap_cents = spend_cap_cents
+    organization.spend_cap_paise = spend_cap_paise
     session.flush()

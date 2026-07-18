@@ -29,7 +29,7 @@ const ORG = {
   role: 'owner',
   status: 'ACTIVE',
   billing_email: 'owner@testco.com',
-  spend_cap_cents: null,
+  spend_cap_paise: null,
   created_at: '2026-01-01T00:00:00Z',
 }
 
@@ -117,9 +117,9 @@ describe('OverviewPage', () => {
         remaining_free_decisions: 458,
         billing_status: 'FREE',
         payment_method_present: false,
-        spend_cap_cents: null,
-        projected_overage_cents: null,
-        stripe_projection_is_async: true,
+        spend_cap_paise: null,
+        projected_overage_paise: null,
+        razorpay_projection_is_async: true,
       },
       '/decisions': [{
         id: 'd-1',
@@ -394,9 +394,9 @@ describe('UsagePage', () => {
         remaining_free_decisions: 380,
         billing_status: 'FREE',
         payment_method_present: false,
-        spend_cap_cents: null,
-        projected_overage_cents: null,
-        stripe_projection_is_async: true,
+        spend_cap_paise: null,
+        projected_overage_paise: null,
+        razorpay_projection_is_async: true,
       },
     })
 
@@ -405,12 +405,12 @@ describe('UsagePage', () => {
     expect(await screen.findByText('120 completed decisions')).toBeInTheDocument()
     expect(screen.getByText('380 remaining')).toBeInTheDocument()
     expect(screen.getByText('2026-07')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /add payment method/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /start razorpay billing/i })).toBeInTheDocument()
     expect(screen.getByText('Monthly spend cap')).toBeInTheDocument()
-    expect(screen.getByText(/Stripe invoice projections update asynchronously/)).toBeInTheDocument()
+    expect(screen.getByText(/Razorpay add-on charges update asynchronously/)).toBeInTheDocument()
   })
 
-  it('shows billing portal button when payment method is active', async () => {
+  it('shows active Razorpay billing without a fake customer portal', async () => {
     mockFetchRoutes({
       '/usage': {
         organization_id: 'org-1',
@@ -421,9 +421,9 @@ describe('UsagePage', () => {
         remaining_free_decisions: 0,
         billing_status: 'ACTIVE',
         payment_method_present: true,
-        spend_cap_cents: 5000,
-        projected_overage_cents: 200,
-        stripe_projection_is_async: true,
+        spend_cap_paise: 5000,
+        projected_overage_paise: 200,
+        razorpay_projection_is_async: true,
       },
     })
 
@@ -431,8 +431,8 @@ describe('UsagePage', () => {
 
     expect(await screen.findByText('600 completed decisions')).toBeInTheDocument()
     expect(screen.getByText('Billing is active')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /open billing portal/i })).toBeInTheDocument()
-    expect(screen.getByText('Current cap: $50.00')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /billing portal/i })).not.toBeInTheDocument()
+    expect(screen.getByText('Current cap: ₹50.00')).toBeInTheDocument()
   })
 })
 

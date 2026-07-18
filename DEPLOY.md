@@ -1,6 +1,14 @@
 # AgentMesh deployment runbook
 
-The supported production topology is Vercel for the static frontend, Render for the FastAPI API and separate Celery worker/scheduler, Supabase for Auth/PostgreSQL/pgvector/private object storage/backups, managed Redis, and Stripe Billing. Development, staging, and production must use separate projects and secrets.
+The supported production topology is a static frontend, the FastAPI API with separate Celery worker/scheduler, Supabase for Auth/PostgreSQL/pgvector/private object storage/backups, managed Redis, and Razorpay Subscriptions. Development, staging, and production must use separate projects and secrets.
+
+## Student Azure staging
+
+The budget deployment uses Azure Static Web Apps Free, a public GHCR image, and Azure Container Apps Consumption with zero minimum replicas, one maximum replica, and no Log Analytics workspace. This keeps low-traffic Azure usage inside the platform free allowances and avoids the recurring Azure Container Registry charge.
+
+The first demo revision may use `APP_ENV=development`, eager tasks, SQLite, and local object storage so the UI/API can be reviewed before paid infrastructure is approved. That revision is ephemeral: scale-down or redeployment can erase application data and documents. It is not a production topology.
+
+Before changing the Azure revision to `APP_ENV=production`, add a restricted non-superuser PostgreSQL application role, durable private object storage, managed Redis with `noeviction`, separate worker/scheduler deployment, malware scanning, backups, complete Razorpay settings, exact HTTPS origins, and all cost-control values.
 
 ## 1. Pre-deployment gates
 
@@ -13,8 +21,8 @@ The launch gate additionally requires staging proof of:
 - live-key access to published releases only;
 - reviewer locking and edited-answer revalidation;
 - the 500/501 quota boundary under concurrency;
-- duplicate and out-of-order Stripe webhooks;
-- meter-outbox reconciliation;
+- duplicate and out-of-order Razorpay webhooks;
+- billing add-on outbox reconciliation;
 - content redaction and document source deletion;
 - provider failure producing non-billable `SYSTEM_UNAVAILABLE`;
 - database backup restoration into a clean staging environment.
@@ -39,18 +47,18 @@ alembic upgrade head
 
 The runtime role needs CRUD privileges but should not be a PostgreSQL superuser, because superusers bypass RLS. The migration enables and forces tenant RLS policies. Keep connection pooling in transaction mode so transaction-local tenant settings cannot leak between requests.
 
-## 3. Stripe
+## 3. Razorpay
 
 Before setting `APP_ENV=production`:
 
-1. Create the AgentMesh product and metered recurring price.
-2. Create a count/sum meter event matching `STRIPE_METER_EVENT_NAME`.
-3. Configure Customer Portal behavior and invoice/payment-failure handling.
-4. Register `POST https://<api-origin>/api/v1/webhooks/stripe` and store its signing secret.
-5. Supply `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `STRIPE_PRICE_ID`.
-6. Supply `OVERAGE_UNIT_PRICE_CENTS`; it is used only for the real-time AgentMesh projection and spend-cap enforcement. Stripe remains invoice-authoritative.
+1. Activate Razorpay Subscriptions for the account and create a recurring INR plan.
+2. Store the resulting plan ID as `RAZORPAY_PLAN_ID` and choose the bounded billing-cycle count in `RAZORPAY_SUBSCRIPTION_TOTAL_COUNT`.
+3. Generate test/live API credentials and supply `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET`.
+4. Register `POST https://<api-origin>/api/v1/webhooks/razorpay` for subscription lifecycle events.
+5. Set a dedicated webhook secret as `RAZORPAY_WEBHOOK_SECRET`; it is distinct from the API key secret.
+6. Supply `OVERAGE_UNIT_PRICE_PAISE`; completed overage decisions are added to the subscription as INR add-ons.
 
-Use Stripe test mode in staging. Confirm signature rejection, event idempotency, cancellation/unpaid states, meter retries, and daily reconciliation before live mode.
+Use Razorpay test mode in staging. Confirm raw-body HMAC rejection, duplicate `X-Razorpay-Event-Id` handling, authenticated/active/pending/halted/cancelled states, add-on delivery, and daily reconciliation before live mode. Ambiguous add-on timeouts are held for review instead of automatically retried because the provider endpoint has no idempotency key.
 
 ## 4. Render API and workers
 
@@ -61,7 +69,7 @@ Use Stripe test mode in staging. Confirm signature rejection, event idempotency,
 - `agentmesh-scheduler`, running Celery Beat;
 - persistent `agentmesh-redis` with `noeviction` for task durability.
 
-Supply every `sync: false` value in the `agentmesh-production` environment group. Production startup intentionally fails when PostgreSQL, managed Redis, Supabase Auth, private S3 storage, exact HTTPS CORS, Stripe, transactional email, external pricing, and provider-cost limits are incomplete.
+Supply every `sync: false` value in the `agentmesh-production` environment group. Production startup intentionally fails when PostgreSQL, managed Redis, Supabase Auth, private S3 storage, exact HTTPS CORS, Razorpay, transactional email, external pricing, and provider-cost limits are incomplete.
 
 Important server-only settings:
 
@@ -73,11 +81,11 @@ Important server-only settings:
 | `API_KEY_PEPPER` | 32+ character key-digest pepper |
 | `WEBHOOK_ENCRYPTION_KEY` | 32+ character envelope key for webhook secrets |
 | `S3_*` | Private Supabase/object-storage S3 interface |
-| `STRIPE_*` | Checkout, meters, portal, and webhook verification |
-| `OVERAGE_UNIT_PRICE_CENTS` | Deployment-configured usage projection |
+| `RAZORPAY_*` | Subscription authorization, add-ons, and webhook verification |
+| `OVERAGE_UNIT_PRICE_PAISE` | Deployment-configured INR usage price |
 | `PROVIDER_COST_CAP_CENTS` | Emergency monthly provider-cost ceiling |
 | `ESTIMATED_COST_PER_DECISION_MILLICENTS` | Cost estimate used by the circuit breaker |
-| `EMAIL_PROVIDER_*` | Transactional email HTTP adapter |
+| `RESEND_API_KEY`, `RESEND_FROM` | Resend transactional email sender |
 | `GROQ_API_KEY` | AgentMesh-owned model-provider credential |
 
 Never place these settings in a `VITE_` variable.
@@ -99,7 +107,7 @@ Configure root directory `frontend`, build command `npm run build`, and output d
 ```dotenv
 VITE_API_URL=https://api.example.com/api/v1
 VITE_SUPABASE_URL=https://<project>.supabase.co
-VITE_SUPABASE_ANON_KEY=<public-anon-key>
+VITE_SUPABASE_PUBLISHABLE_KEY=<public-publishable-key>
 VITE_TURNSTILE_SITE_KEY=<public-site-key>
 ```
 
@@ -122,14 +130,14 @@ Then complete this staging journey in a clean browser:
 6. Retry the same request and confirm the same decision ID and unchanged usage.
 7. Cause an escalation, claim it, test a conflicting edit, and approve a safe cited answer.
 8. Confirm signed customer webhook delivery and immutable review/audit history.
-9. Exercise Checkout in Stripe test mode and compare AgentMesh usage with meter events.
+9. Authorize a Razorpay test subscription and compare AgentMesh overage usage with created add-ons.
 10. Revoke the key and confirm the next call returns `401`.
 
 ## 7. Privacy, retention, and deletion
 
 The API never intentionally logs prompts, answers, documents, secrets, payment data, or provider credentials. Raw decision and escalation content is redacted after each organization's retention window (30 days by default); audit and billing metadata remain. Archiving a document removes its chunks from retrieval immediately and queues source-object deletion.
 
-Alerts should cover API error/latency rate, queue depth, failed jobs, failed webhook/email deliveries, provider-cost circuit activation, Stripe outbox failures, and reconciliation drift. Restore backups regularly into an isolated staging project and record recovery time and data-loss window.
+Alerts should cover API error/latency rate, queue depth, failed jobs, failed webhook/email deliveries, provider-cost circuit activation, Razorpay outbox failures/review states, and reconciliation drift. Restore backups regularly into an isolated staging project and record recovery time and data-loss window.
 
 ## 8. Rollback
 

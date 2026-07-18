@@ -19,7 +19,7 @@ const ORGS = [{
   role: 'owner',
   status: 'ACTIVE',
   billing_email: 'owner@testco.com',
-  spend_cap_cents: null,
+  spend_cap_paise: null,
   created_at: '2026-01-01T00:00:00Z',
 }]
 

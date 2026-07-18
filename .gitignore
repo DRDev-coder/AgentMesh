@@ -51,6 +51,8 @@ typechain-types/
 .env.*
 *.env
 !.env.example
+infra/azure/*.generated.yaml
+infra/azure/*.generated.json
 
 # Local application state
 state/

@@ -12,7 +12,7 @@ const organization = {
   role: 'owner',
   status: 'active',
   billing_email: 'owner@example.com',
-  spend_cap_cents: null,
+  spend_cap_paise: null,
   created_at: '2026-01-01T00:00:00Z',
 }
 

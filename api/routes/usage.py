@@ -43,7 +43,7 @@ def set_spend_cap(
         organization_id, "billing:manage", session, principal
     )
     usage_service.update_spend_cap(
-        session, organization_id, payload.spend_cap_cents
+        session, organization_id, payload.spend_cap_paise
     )
     record_audit(
         session,
@@ -51,6 +51,6 @@ def set_spend_cap(
         "billing.spend_cap_updated",
         "organization",
         organization_id,
-        {"spend_cap_cents": payload.spend_cap_cents},
+        {"spend_cap_paise": payload.spend_cap_paise},
     )
     return summary(session, request.app.state.settings, organization_id)

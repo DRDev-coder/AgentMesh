@@ -6,7 +6,7 @@ from api.config import get_settings
 from api.db.base import Database
 from api.services.knowledge import process_document_version
 from api.services.object_storage import create_object_storage
-from api.services.billing import reconcile_meter_outbox, report_meter_events
+from api.services.billing import reconcile_billing_outbox, report_usage_addons
 from api.services.email import deliver_pending as deliver_pending_email
 from api.services.retention import redact_expired_content
 from api.services.webhooks import deliver_pending
@@ -57,22 +57,22 @@ def enqueue_document(document_version_id: str) -> None:
         process_document.delay(document_version_id)
 
 
-@celery_app.task(name="agentmesh.report_meter_events")
-def report_usage_to_stripe() -> int:
-    if not settings.stripe_secret_key:
+@celery_app.task(name="agentmesh.report_razorpay_addons")
+def report_usage_to_razorpay() -> int:
+    if not settings.razorpay_key_id or not settings.razorpay_key_secret:
         return 0
     database = Database(settings)
     try:
-        return report_meter_events(database, settings)
+        return report_usage_addons(database, settings)
     finally:
         database.dispose()
 
 
-@celery_app.task(name="agentmesh.reconcile_meter_outbox")
-def reconcile_usage_with_stripe_outbox() -> int:
+@celery_app.task(name="agentmesh.reconcile_billing_outbox")
+def reconcile_usage_with_billing_outbox() -> int:
     database = Database(settings)
     try:
-        return reconcile_meter_outbox(database, settings)
+        return reconcile_billing_outbox(database, settings)
     finally:
         database.dispose()
 
@@ -140,8 +140,8 @@ def delete_stored_documents(limit: int = 50) -> int:
 
 
 celery_app.conf.beat_schedule = {
-    "report-meter-events-every-minute": {
-        "task": "agentmesh.report_meter_events",
+    "report-razorpay-addons-every-minute": {
+        "task": "agentmesh.report_razorpay_addons",
         "schedule": 60.0,
     },
     "deliver-webhooks-every-minute": {
@@ -160,8 +160,8 @@ celery_app.conf.beat_schedule = {
         "task": "agentmesh.enforce_retention",
         "schedule": 86400.0,
     },
-    "reconcile-meter-outbox-daily": {
-        "task": "agentmesh.reconcile_meter_outbox",
+    "reconcile-billing-outbox-daily": {
+        "task": "agentmesh.reconcile_billing_outbox",
         "schedule": 86400.0,
     },
 }

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from html import escape
+import json
+from urllib.parse import urlparse
 
-import httpx
+import resend
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -10,6 +13,80 @@ from api.config import Settings
 from api.db.base import Database
 from api.db.models import EmailOutbox, Membership, UserProfile
 from api.tenancy import set_platform_database_context, set_tenant_database_context
+
+
+def _safe_link(value: object) -> str | None:
+    link = str(value or "").strip()
+    parsed = urlparse(link)
+    return link if parsed.scheme in {"http", "https"} and parsed.netloc else None
+
+
+def _render_email(template_key: str, template_data: dict) -> tuple[str, str, str]:
+    if template_key == "team_invitation":
+        role = str(template_data.get("role") or "member").strip().title()
+        invite_url = _safe_link(template_data.get("invite_url"))
+        subject = "You're invited to AgentMesh"
+        action_html = (
+            f'<p><a href="{escape(invite_url, quote=True)}">Accept invitation</a></p>'
+            if invite_url
+            else "<p>Open AgentMesh to accept your invitation.</p>"
+        )
+        html = (
+            "<p>You have been invited to join an AgentMesh organization as "
+            f"<strong>{escape(role)}</strong>.</p>{action_html}"
+        )
+        text = (
+            f"You have been invited to join an AgentMesh organization as {role}."
+            + (f"\n\nAccept invitation: {invite_url}" if invite_url else "")
+        )
+        return subject, html, text
+
+    if template_key == "review_required":
+        escalation_id = str(template_data.get("escalation_id") or "unknown")
+        priority = str(template_data.get("priority") or "unspecified").upper()
+        subject = f"AgentMesh review required: {priority}"
+        html = (
+            "<p>A decision requires human review.</p>"
+            f"<p><strong>Priority:</strong> {escape(priority)}<br>"
+            f"<strong>Escalation:</strong> {escape(escalation_id)}</p>"
+        )
+        text = (
+            "A decision requires human review.\n\n"
+            f"Priority: {priority}\nEscalation: {escalation_id}"
+        )
+        return subject, html, text
+
+    details = json.dumps(template_data, sort_keys=True, default=str)
+    subject = "AgentMesh notification"
+    html = (
+        f"<p>{escape(template_key.replace('_', ' ').title())}</p>"
+        f"<pre>{escape(details)}</pre>"
+    )
+    return subject, html, f"{template_key}\n\n{details}"
+
+
+def _send_with_resend(
+    settings: Settings,
+    recipient: str,
+    template_key: str,
+    template_data: dict,
+) -> str | None:
+    subject, html, text = _render_email(template_key, template_data)
+    resend.api_key = settings.resend_api_key
+    response = resend.Emails.send(
+        {
+            "from": settings.resend_from,
+            "to": [recipient],
+            "subject": subject,
+            "html": html,
+            "text": text,
+        }
+    )
+    if isinstance(response, dict):
+        message_id = response.get("id")
+    else:
+        message_id = getattr(response, "id", None)
+    return str(message_id)[:128] if message_id else None
 
 
 def queue_email(
@@ -74,27 +151,16 @@ def deliver_pending(database: Database, settings: Settings, limit: int = 50) -> 
         ).all()
         for value in values:
             set_tenant_database_context(session, value.organization_id)
-            if not settings.email_provider_url:
+            if not settings.resend_api_key:
                 value.status = "SKIPPED"
                 continue
             try:
-                response = httpx.post(
-                    settings.email_provider_url,
-                    headers={
-                        "Authorization": f"Bearer {settings.email_provider_api_key}",
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "from": settings.email_from,
-                        "to": value.recipient,
-                        "template": value.template_key,
-                        "data": value.template_data,
-                    },
-                    timeout=10.0,
+                value.provider_message_id = _send_with_resend(
+                    settings,
+                    value.recipient,
+                    value.template_key,
+                    value.template_data,
                 )
-                response.raise_for_status()
-                payload = response.json() if response.content else {}
-                value.provider_message_id = str(payload.get("id", ""))[:128] or None
                 value.status = "DELIVERED"
                 value.last_error = None
                 delivered += 1

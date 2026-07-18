@@ -244,7 +244,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/organizations/{organization_id}/billing/checkout": {
+    "/api/v1/organizations/{organization_id}/billing/subscription": {
         parameters: {
             query?: never;
             header?: never;
@@ -253,25 +253,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Checkout */
-        post: operations["checkout_api_v1_organizations__organization_id__billing_checkout_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/{organization_id}/billing/portal": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Portal */
-        post: operations["portal_api_v1_organizations__organization_id__billing_portal_post"];
+        /** Create Subscription */
+        post: operations["create_subscription_api_v1_organizations__organization_id__billing_subscription_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1088,11 +1071,6 @@ export interface components {
          * @enum {string}
          */
         AuditStatus: "DISABLED" | "PENDING" | "SUBMITTED" | "CONFIRMED" | "FAILED";
-        /** BillingPortalResult */
-        BillingPortalResult: {
-            /** Url */
-            url: string;
-        };
         /** Body_upload_document_api_v1_organizations__organization_id__workspaces__workspace_id__documents_post */
         Body_upload_document_api_v1_organizations__organization_id__workspaces__workspace_id__documents_post: {
             /**
@@ -1433,8 +1411,8 @@ export interface components {
             role: string;
             /** Slug */
             slug: string;
-            /** Spend Cap Cents */
-            spend_cap_cents: number | null;
+            /** Spend Cap Paise */
+            spend_cap_paise: number | null;
             /** Status */
             status: string;
         };
@@ -1605,8 +1583,8 @@ export interface components {
         };
         /** SpendCapUpdate */
         SpendCapUpdate: {
-            /** Spend Cap Cents */
-            spend_cap_cents?: number | null;
+            /** Spend Cap Paise */
+            spend_cap_paise?: number | null;
         };
         /** TenantEscalationView */
         TenantEscalationView: {
@@ -1665,17 +1643,17 @@ export interface components {
             payment_method_present: boolean;
             /** Period */
             period: string;
-            /** Projected Overage Cents */
-            projected_overage_cents: number | null;
-            /** Remaining Free Decisions */
-            remaining_free_decisions: number;
-            /** Spend Cap Cents */
-            spend_cap_cents: number | null;
+            /** Projected Overage Paise */
+            projected_overage_paise: number | null;
             /**
-             * Stripe Projection Is Async
+             * Razorpay Projection Is Async
              * @default true
              */
-            stripe_projection_is_async: boolean;
+            razorpay_projection_is_async: boolean;
+            /** Remaining Free Decisions */
+            remaining_free_decisions: number;
+            /** Spend Cap Paise */
+            spend_cap_paise: number | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -2330,7 +2308,7 @@ export interface operations {
             };
         };
     };
-    checkout_api_v1_organizations__organization_id__billing_checkout_post: {
+    create_subscription_api_v1_organizations__organization_id__billing_subscription_post: {
         parameters: {
             query?: never;
             header?: {
@@ -2353,42 +2331,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CheckoutResult"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    portal_api_v1_organizations__organization_id__billing_portal_post: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-                "x-dev-user"?: string | null;
-                "x-dev-email"?: string | null;
-                "x-dev-aal"?: string | null;
-            };
-            path: {
-                organization_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BillingPortalResult"];
                 };
             };
             /** @description Validation Error */

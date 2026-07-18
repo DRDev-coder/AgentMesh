@@ -96,7 +96,7 @@ export interface Organization {
   role: string
   status: string
   billing_email: string
-  spend_cap_cents: number | null
+  spend_cap_paise: number | null
   created_at: string
 }
 
@@ -148,9 +148,9 @@ export interface UsageSummary {
   remaining_free_decisions: number
   billing_status: string
   payment_method_present: boolean
-  spend_cap_cents: number | null
-  projected_overage_cents: number | null
-  stripe_projection_is_async: boolean
+  spend_cap_paise: number | null
+  projected_overage_paise: number | null
+  razorpay_projection_is_async: boolean
 }
 
 export interface DecisionRecord {

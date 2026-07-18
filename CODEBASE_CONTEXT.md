@@ -496,7 +496,7 @@ There is no relational/document application database, ORM, migration framework, 
 - **Functions**: get_db_session, set_tenant_database_context, set_platform_database_context, organization_context, workspace_context, principal_dependency
 
 ### .\api\worker.py
-- **Functions**: process_document, enqueue_document, report_usage_to_stripe, reconcile_usage_with_stripe_outbox, deliver_webhooks, deliver_email, enforce_retention, delete_stored_documents
+- **Functions**: process_document, enqueue_document, report_usage_to_razorpay, reconcile_usage_with_billing_outbox, deliver_webhooks, deliver_email, enforce_retention, delete_stored_documents
 
 ### .\api\db\__init__.py
 
@@ -504,7 +504,7 @@ There is no relational/document application database, ORM, migration framework, 
 - **Classes**: Base, Database
 
 ### .\api\db\models.py
-- **Classes**: TimestampMixin, UserProfile, Organization, Membership, Invitation, PlatformRole, Workspace, IndustryTemplate, WorkspaceProfileVersion, Document, DocumentVersion, DocumentChunk, KnowledgeRelease, APIKey, SaaSDecision, DecisionSession, DecisionCitation, AgentFindingRecord, TenantEscalation, ReviewAction, UsageEvent, UsageReservation, BillingAccount, BillingOutbox, StripeEvent, IdempotencyRecord, WebhookEndpoint, WebhookDelivery, EmailOutbox, AuditEvent, BackgroundJob, AbuseSignal
+- **Classes**: TimestampMixin, UserProfile, Organization, Membership, Invitation, PlatformRole, Workspace, IndustryTemplate, WorkspaceProfileVersion, Document, DocumentVersion, DocumentChunk, KnowledgeRelease, APIKey, SaaSDecision, DecisionSession, DecisionCitation, AgentFindingRecord, TenantEscalation, ReviewAction, UsageEvent, UsageReservation, BillingAccount, BillingOutbox, RazorpayEvent, IdempotencyRecord, WebhookEndpoint, WebhookDelivery, EmailOutbox, AuditEvent, BackgroundJob, AbuseSignal
 - **Functions**: new_id, utc_now
 
 ### .\api\middleware\__init__.py
@@ -518,7 +518,7 @@ There is no relational/document application database, ORM, migration framework, 
 - **Functions**: api_keys, create_api_key, revoke_api_key
 
 ### .\api\routes\billing.py
-- **Functions**: checkout, portal, stripe_webhook
+- **Functions**: create_subscription, razorpay_webhook
 
 ### .\api\routes\chat.py
 - **Functions**: chat
@@ -560,7 +560,7 @@ There is no relational/document application database, ORM, migration framework, 
 - **Functions**: record_audit
 
 ### .\api\services\billing.py
-- **Functions**: _configure, create_checkout, create_portal, process_stripe_webhook, report_meter_events, reconcile_meter_outbox
+- **Functions**: _require_configured, create_subscription, process_razorpay_webhook, report_usage_addons, reconcile_billing_outbox
 
 ### .\api\services\blockchain_logger.py
 - **Classes**: BlockchainLogger

@@ -9,7 +9,6 @@ import {
   Code2,
   Copy,
   CreditCard,
-  ExternalLink,
   FileText,
   KeyRound,
   LockKeyhole,
@@ -358,12 +357,14 @@ export function UsagePage() {
   const queryClient = useQueryClient()
   const [spendCap, setSpendCap] = useState('')
   const usage = useQuery({ queryKey: ['usage', context.organization.id], queryFn: () => saasRequest<UsageSummary>(`/organizations/${context.organization.id}/usage`) })
-  const checkout = useMutation({ mutationFn: () => saasRequest<{ url: string }>(`/organizations/${context.organization.id}/billing/checkout`, { method: 'POST' }), onSuccess: (value) => window.location.assign(value.url) })
-  const portal = useMutation({ mutationFn: () => saasRequest<{ url: string }>(`/organizations/${context.organization.id}/billing/portal`, { method: 'POST' }), onSuccess: (value) => window.location.assign(value.url) })
+  const subscription = useMutation({
+    mutationFn: () => saasRequest<{ url: string }>(`/organizations/${context.organization.id}/billing/subscription`, { method: 'POST' }),
+    onSuccess: (value) => window.location.assign(value.url),
+  })
   const cap = useMutation({
     mutationFn: () => saasRequest<UsageSummary>(`/organizations/${context.organization.id}/usage/spend-cap`, {
       method: 'PATCH',
-      body: { spend_cap_cents: spendCap ? Math.round(Number(spendCap) * 100) : null },
+      body: { spend_cap_paise: spendCap ? Math.round(Number(spendCap) * 100) : null },
     }),
     onSuccess: async () => {
       setSpendCap('')
@@ -371,8 +372,49 @@ export function UsagePage() {
     },
   })
   const percentage = usage.data ? Math.min(100, (usage.data.completed_decisions / usage.data.included_decisions) * 100) : 0
-  const projected = usage.data?.projected_overage_cents
-  return <div className="saas-page usage-page"><ErrorNotice error={usage.error || checkout.error || portal.error || cap.error} /><section className="billing-hero"><div><p className="eyebrow">{usage.data?.period}</p><h2>{usage.data?.completed_decisions ?? 0} completed decisions</h2><p>The first {usage.data?.included_decisions ?? 500} decisions are included across every workspace and environment.</p></div><span className={`state-pill ${(usage.data?.billing_status || 'free').toLowerCase()}`}>{usage.data?.billing_status || 'FREE'}</span></section><section className="panel-card usage-meter"><div className="usage-meter-labels"><span>Monthly allowance</span><strong>{usage.data?.remaining_free_decisions ?? 500} remaining</strong></div><div className="usage-track"><i style={{ width: `${percentage}%` }} /></div><div className="usage-meter-labels"><small>0</small><small>{usage.data?.included_decisions ?? 500} included</small></div></section><div className="billing-grid"><section className="panel-card"><CreditCard size={22} /><p className="eyebrow">Pay as you go</p><h2>{usage.data?.payment_method_present ? 'Billing is active' : 'Continue after the free allowance'}</h2><p>Completed decisions beyond the included allowance are aggregated and invoiced monthly. Platform failures are not billed.</p><p><strong>AgentMesh projection:</strong> {projected === null || projected === undefined ? 'Set by deployment pricing' : `$${(projected / 100).toFixed(2)}`}. Stripe invoice projections update asynchronously.</p>{usage.data?.payment_method_present ? <button className="button secondary" onClick={() => portal.mutate()}>Open billing portal <ExternalLink size={14} /></button> : <button className="button primary" onClick={() => checkout.mutate()}>Add payment method <ArrowRight size={14} /></button>}</section><section className="panel-card"><ShieldCheck size={22} /><p className="eyebrow">Billing safeguards</p><h2>Monthly spend cap</h2><p>{usage.data?.spend_cap_cents == null ? 'No customer spend cap is configured.' : `Current cap: $${(usage.data.spend_cap_cents / 100).toFixed(2)}`}</p>{context.organization.role === 'owner' && <div className="inline-form compact"><label><span>Cap in USD</span><input type="number" min="0" step="0.01" value={spendCap} onChange={(event) => setSpendCap(event.target.value)} placeholder="Leave blank to remove" /></label><button className="button secondary" disabled={cap.isPending || (Boolean(spendCap) && !Number.isFinite(Number(spendCap)))} onClick={() => cap.mutate()}>Save cap</button></div>}<ul><li>Idempotent retries count once</li><li>Blocked and escalated completed decisions count</li><li>Validation and platform failures do not count</li><li>Stripe events reconcile asynchronously</li></ul></section></div></div>
+  const projected = usage.data?.projected_overage_paise
+  const billingActive = Boolean(
+    usage.data?.payment_method_present
+      && ['ACTIVE', 'AUTHENTICATED'].includes(usage.data.billing_status),
+  )
+  return (
+    <div className="saas-page usage-page">
+      <ErrorNotice error={usage.error || subscription.error || cap.error} />
+      <section className="billing-hero">
+        <div>
+          <p className="eyebrow">{usage.data?.period}</p>
+          <h2>{usage.data?.completed_decisions ?? 0} completed decisions</h2>
+          <p>The first {usage.data?.included_decisions ?? 500} decisions are included across every workspace and environment.</p>
+        </div>
+        <span className={`state-pill ${(usage.data?.billing_status || 'free').toLowerCase()}`}>{usage.data?.billing_status || 'FREE'}</span>
+      </section>
+      <section className="panel-card usage-meter">
+        <div className="usage-meter-labels"><span>Monthly allowance</span><strong>{usage.data?.remaining_free_decisions ?? 500} remaining</strong></div>
+        <div className="usage-track"><i style={{ width: `${percentage}%` }} /></div>
+        <div className="usage-meter-labels"><small>0</small><small>{usage.data?.included_decisions ?? 500} included</small></div>
+      </section>
+      <div className="billing-grid">
+        <section className="panel-card">
+          <CreditCard size={22} />
+          <p className="eyebrow">Razorpay subscription</p>
+          <h2>{billingActive ? 'Billing is active' : 'Continue after the free allowance'}</h2>
+          <p>Completed decisions beyond the included allowance are submitted to Razorpay as subscription add-ons. Platform failures are not billed.</p>
+          <p><strong>AgentMesh projection:</strong> {projected === null || projected === undefined ? 'Set by deployment pricing' : `₹${(projected / 100).toFixed(2)}`}. Razorpay add-on charges update asynchronously.</p>
+          {billingActive
+            ? <p className="muted-text">Razorpay sends payment-method update and recovery links directly to the billing contact.</p>
+            : <button className="button primary" disabled={subscription.isPending} onClick={() => subscription.mutate()}>Start Razorpay billing <ArrowRight size={14} /></button>}
+        </section>
+        <section className="panel-card">
+          <ShieldCheck size={22} />
+          <p className="eyebrow">Billing safeguards</p>
+          <h2>Monthly spend cap</h2>
+          <p>{usage.data?.spend_cap_paise == null ? 'No customer spend cap is configured.' : `Current cap: ₹${(usage.data.spend_cap_paise / 100).toFixed(2)}`}</p>
+          {context.organization.role === 'owner' && <div className="inline-form compact"><label><span>Cap in INR</span><input type="number" min="0" step="0.01" value={spendCap} onChange={(event) => setSpendCap(event.target.value)} placeholder="Leave blank to remove" /></label><button className="button secondary" disabled={cap.isPending || (Boolean(spendCap) && !Number.isFinite(Number(spendCap)))} onClick={() => cap.mutate()}>Save cap</button></div>}
+          <ul><li>Idempotent retries count once</li><li>Blocked and escalated completed decisions count</li><li>Validation and platform failures do not count</li><li>Ambiguous Razorpay add-on deliveries require review to prevent duplicate charges</li></ul>
+        </section>
+      </div>
+    </div>
+  )
 }
 
 interface Member { id: string; auth_user_id: string; email: string; role: string; status: string; created_at: string }

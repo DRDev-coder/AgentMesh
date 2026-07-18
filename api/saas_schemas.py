@@ -29,7 +29,7 @@ class OrganizationView(SaaSModel):
     role: str
     status: str
     billing_email: str
-    spend_cap_cents: int | None
+    spend_cap_paise: int | None
     created_at: datetime
 
 
@@ -276,20 +276,16 @@ class UsageSummary(SaaSModel):
     remaining_free_decisions: int
     billing_status: str
     payment_method_present: bool
-    spend_cap_cents: int | None
-    projected_overage_cents: int | None
-    stripe_projection_is_async: bool = True
+    spend_cap_paise: int | None
+    projected_overage_paise: int | None
+    razorpay_projection_is_async: bool = True
 
 
 class SpendCapUpdate(SaaSModel):
-    spend_cap_cents: int | None = Field(default=None, ge=0, le=100_000_000)
+    spend_cap_paise: int | None = Field(default=None, ge=0, le=100_000_000)
 
 
 class CheckoutResult(SaaSModel):
-    url: str
-
-
-class BillingPortalResult(SaaSModel):
     url: str
 
 

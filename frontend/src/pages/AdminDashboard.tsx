@@ -141,7 +141,7 @@ function OverviewView({ metrics }: { metrics: PlatformMetrics | undefined }) {
             </div>
             <div className="admin-activity-item">
               <span className="admin-activity-dot warning" />
-              <div><strong>Billing sync</strong><small>Stripe webhook processing</small></div>
+              <div><strong>Billing sync</strong><small>Razorpay webhook processing</small></div>
               <time>15m ago</time>
             </div>
           </div>

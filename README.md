@@ -15,8 +15,8 @@ This MVP is for English-language informational support. It explicitly excludes P
 - Immutable document/profile/knowledge releases, draft behavior for test keys, published-only behavior for live keys, preview, archive, and rollback.
 - One-time-reveal `am_test_` and `am_live_` API keys stored only as keyed digests, with scopes, expiry, revocation, and distributed Redis rate limits.
 - Idempotent `POST /api/v1/decisions`, exact citations, redacted traces, decision history, escalation lifecycle, optimistic review locking, and edited-answer revalidation.
-- Organization-wide usage ledger, 500 completed decisions per UTC month, non-billable platform failures, Stripe metering outbox, Checkout/Portal/webhooks, spend caps, and provider-cost circuit breaker.
-- Timestamped HMAC customer webhooks, retry history, transactional email outbox, document deletion jobs, and 30-day raw-content redaction jobs.
+- Organization-wide usage ledger, 500 completed decisions per UTC month, non-billable platform failures, Razorpay subscription add-on outbox, hosted subscription links/webhooks, INR spend caps, and provider-cost circuit breaker.
+- Timestamped HMAC customer webhooks, retry history, Resend-backed transactional email outbox, document deletion jobs, and 30-day raw-content redaction jobs.
 - Immutable hash-chained PostgreSQL audit events. The experimental blockchain module is disabled and is not authoritative.
 - React/TypeScript SaaS dashboard using the existing Fraunces/Inter/JetBrains typography and cream/black/red visual system.
 
@@ -25,16 +25,18 @@ This MVP is for English-language informational support. It explicitly excludes P
 ```text
 Vercel: React + Vite + TypeScript
              |
-Render: FastAPI modular monolith ---- Redis (limits, cache, Celery)
+Azure Container Apps: FastAPI modular monolith ---- Redis (limits, cache, Celery)
              |                         |
              |                  Celery worker + scheduler
              |
 Supabase: PostgreSQL + pgvector, Auth, private object storage, backups
              |
-Stripe: Checkout, Billing meters, Customer Portal, signed webhooks
+Razorpay: Subscriptions, usage add-ons, hosted authorization, signed webhooks
 ```
 
-Interactive decisions remain synchronous inside the modular monolith. Celery handles document ingestion, email, outbound webhooks, retention, source deletion, and Stripe meter delivery.
+The student staging deployment uses Azure Static Web Apps Free plus Azure Container Apps Consumption scaled to zero. Its initial demo revision uses ephemeral SQLite/local storage and eager tasks to avoid paid Azure database, Redis, registry, and logging resources; see `infra/azure/README.md` for the production gap.
+
+Interactive decisions remain synchronous inside the modular monolith. Celery handles document ingestion, email, outbound webhooks, retention, source deletion, and Razorpay add-on delivery.
 
 ## Local start
 
@@ -45,6 +47,8 @@ cp .env.example .env
 docker compose up --build
 ```
 
+Set `RESEND_API_KEY` in the ignored `.env` file. For testing, `RESEND_FROM=AgentMesh <onboarding@resend.dev>` can send only to the email address associated with the Resend account; use an address on a verified domain for other recipients.
+
 Then run the frontend:
 
 ```bash
@@ -53,7 +57,7 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`. Local development auth uses `X-Dev-User`; production refuses to start unless Supabase, PostgreSQL, private object storage, Stripe, email, HTTPS CORS, and cost controls are configured.
+Open `http://localhost:3000`. Local development auth uses `X-Dev-User`; production refuses to start unless Supabase, PostgreSQL, private object storage, Razorpay, Resend, HTTPS CORS, and cost controls are configured.
 
 For a host-native backend, start PostgreSQL and Redis, copy `.env.example`, run `alembic upgrade head`, then:
 

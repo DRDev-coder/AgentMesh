@@ -112,7 +112,7 @@ def _organization_view(organization: Organization, role: str) -> OrganizationVie
         role=role,
         status=organization.status,
         billing_email=organization.billing_email,
-        spend_cap_cents=organization.spend_cap_cents,
+        spend_cap_paise=organization.spend_cap_paise,
         created_at=organization.created_at,
     )
 

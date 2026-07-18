@@ -39,19 +39,20 @@ class Settings:
     s3_access_key_id: str
     s3_secret_access_key: str
     api_key_pepper: str
-    stripe_secret_key: str
-    stripe_webhook_secret: str
-    stripe_price_id: str
-    stripe_meter_event_name: str
+    razorpay_key_id: str
+    razorpay_key_secret: str
+    razorpay_webhook_secret: str
+    razorpay_plan_id: str
+    razorpay_subscription_total_count: int
+    razorpay_base_url: str
     public_app_url: str
     saas_enabled: bool
     tasks_eager: bool
     webhook_encryption_key: str
     public_rate_limit_per_minute: int
-    email_provider_url: str
-    email_provider_api_key: str
-    email_from: str
-    overage_unit_price_cents: int
+    resend_api_key: str
+    resend_from: str
+    overage_unit_price_paise: int
     provider_cost_cap_cents: int
     estimated_cost_per_decision_millicents: int
     malware_scan_url: str
@@ -97,14 +98,18 @@ class Settings:
             api_key_pepper=os.getenv(
                 "API_KEY_PEPPER", "development-only-agentmesh-pepper"
             ),
-            stripe_secret_key=os.getenv("STRIPE_SECRET_KEY", "").strip(),
-            stripe_webhook_secret=os.getenv(
-                "STRIPE_WEBHOOK_SECRET", ""
+            razorpay_key_id=os.getenv("RAZORPAY_KEY_ID", "").strip(),
+            razorpay_key_secret=os.getenv("RAZORPAY_KEY_SECRET", "").strip(),
+            razorpay_webhook_secret=os.getenv(
+                "RAZORPAY_WEBHOOK_SECRET", ""
             ).strip(),
-            stripe_price_id=os.getenv("STRIPE_PRICE_ID", "").strip(),
-            stripe_meter_event_name=os.getenv(
-                "STRIPE_METER_EVENT_NAME", "agentmesh_decisions"
-            ).strip(),
+            razorpay_plan_id=os.getenv("RAZORPAY_PLAN_ID", "").strip(),
+            razorpay_subscription_total_count=max(
+                1, _integer("RAZORPAY_SUBSCRIPTION_TOTAL_COUNT", 120)
+            ),
+            razorpay_base_url=os.getenv(
+                "RAZORPAY_BASE_URL", "https://api.razorpay.com/v1"
+            ).strip().rstrip("/"),
             public_app_url=os.getenv(
                 "PUBLIC_APP_URL", "http://localhost:3000"
             ).strip().rstrip("/"),
@@ -116,10 +121,17 @@ class Settings:
             public_rate_limit_per_minute=max(
                 1, _integer("PUBLIC_RATE_LIMIT_PER_MINUTE", 60)
             ),
-            email_provider_url=os.getenv("EMAIL_PROVIDER_URL", "").strip(),
-            email_provider_api_key=os.getenv("EMAIL_PROVIDER_API_KEY", "").strip(),
-            email_from=os.getenv("EMAIL_FROM", "AgentMesh <noreply@example.local>").strip(),
-            overage_unit_price_cents=max(0, _integer("OVERAGE_UNIT_PRICE_CENTS", 0)),
+            resend_api_key=(
+                os.getenv("RESEND_API_KEY")
+                or os.getenv("EMAIL_PROVIDER_API_KEY", "")
+            ).strip(),
+            resend_from=(
+                os.getenv("RESEND_FROM")
+                or os.getenv("EMAIL_FROM", "AgentMesh <onboarding@resend.dev>")
+            ).strip(),
+            overage_unit_price_paise=max(
+                0, _integer("OVERAGE_UNIT_PRICE_PAISE", 0)
+            ),
             provider_cost_cap_cents=max(0, _integer("PROVIDER_COST_CAP_CENTS", 0)),
             estimated_cost_per_decision_millicents=max(
                 0, _integer("ESTIMATED_COST_PER_DECISION_MILLICENTS", 0)
@@ -177,18 +189,19 @@ class Settings:
                 raise RuntimeError("Production requires exact HTTPS CORS_ORIGINS")
             if not all(
                 [
-                    self.stripe_secret_key,
-                    self.stripe_webhook_secret,
-                    self.stripe_price_id,
+                    self.razorpay_key_id,
+                    self.razorpay_key_secret,
+                    self.razorpay_webhook_secret,
+                    self.razorpay_plan_id,
                 ]
             ):
-                raise RuntimeError("Production requires Stripe billing configuration")
-            if not self.email_provider_url or not self.email_provider_api_key:
-                raise RuntimeError("Production requires a transactional email provider")
+                raise RuntimeError("Production requires Razorpay billing configuration")
+            if not self.resend_api_key or not self.resend_from:
+                raise RuntimeError("Production requires Resend email configuration")
             if not self.malware_scan_url or not self.malware_scan_api_key:
                 raise RuntimeError("Production requires a malware scanning provider")
-            if self.overage_unit_price_cents <= 0:
-                raise RuntimeError("Production requires OVERAGE_UNIT_PRICE_CENTS")
+            if self.overage_unit_price_paise <= 0:
+                raise RuntimeError("Production requires OVERAGE_UNIT_PRICE_PAISE")
             if self.provider_cost_cap_cents <= 0:
                 raise RuntimeError("Production requires PROVIDER_COST_CAP_CENTS")
             if self.estimated_cost_per_decision_millicents <= 0:

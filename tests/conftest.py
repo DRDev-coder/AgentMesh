@@ -11,4 +11,6 @@ if str(ROOT) not in sys.path:
 
 # Ordinary tests must be deterministic and must never contact an external model.
 os.environ["GROQ_API_KEY"] = ""
+os.environ["RESEND_API_KEY"] = ""
+os.environ["EMAIL_PROVIDER_API_KEY"] = ""
 os.environ["BLOCKCHAIN_ENABLED"] = "false"

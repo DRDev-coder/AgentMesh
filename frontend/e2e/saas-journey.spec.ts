@@ -38,5 +38,5 @@ test('onboarding to published knowledge, decision trace, and usage', async ({ pa
 
   await page.getByRole('link', { name: /usage.*billing/i }).click()
   await expect(page.getByRole('heading', { name: '1 completed decisions' })).toBeVisible()
-  await expect(page.getByText(/stripe invoice projections update asynchronously/i)).toBeVisible()
+  await expect(page.getByText(/razorpay add-on charges update asynchronously/i)).toBeVisible()
 })

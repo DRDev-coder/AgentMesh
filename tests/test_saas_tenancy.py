@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
+import json
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from api.config import get_settings
 from api.db.base import Database
@@ -15,15 +19,18 @@ from api.db.models import (
     DecisionSession,
     IdempotencyRecord,
     Organization,
+    RazorpayEvent,
     SaaSDecision,
+    UsageEvent,
 )
 from api.main import create_app
 from api.services.retention import REDACTED, redact_expired_content
+from api.services import billing as billing_service
 from api.tenancy import ROLE_PERMISSIONS, TenantContext
 
 
 def _settings(
-    tmp_path: Path, *, free_decisions: int = 2, overage_unit_price_cents: int = 0
+    tmp_path: Path, *, free_decisions: int = 2, overage_unit_price_paise: int = 0
 ):
     return replace(
         get_settings(),
@@ -35,17 +42,17 @@ def _settings(
         saas_enabled=True,
         tasks_eager=True,
         free_decisions_per_month=free_decisions,
-        overage_unit_price_cents=overage_unit_price_cents,
+        overage_unit_price_paise=overage_unit_price_paise,
     )
 
 
 def _client(
-    tmp_path: Path, *, free_decisions: int = 2, overage_unit_price_cents: int = 0
+    tmp_path: Path, *, free_decisions: int = 2, overage_unit_price_paise: int = 0
 ) -> TestClient:
     settings = _settings(
         tmp_path,
         free_decisions=free_decisions,
-        overage_unit_price_cents=overage_unit_price_cents,
+        overage_unit_price_paise=overage_unit_price_paise,
     )
     database = Database(settings)
     return TestClient(
@@ -445,7 +452,7 @@ def test_reviewer_claim_optimistic_lock_and_terminal_transition(tmp_path: Path) 
 
 def test_owner_spend_cap_blocks_paid_overage_before_processing(tmp_path: Path) -> None:
     with _client(
-        tmp_path, free_decisions=0, overage_unit_price_cents=100
+        tmp_path, free_decisions=0, overage_unit_price_paise=100
     ) as client:
         organization_id, workspace_id = _onboard(client)
         _upload_and_publish(client, organization_id, workspace_id)
@@ -454,11 +461,11 @@ def test_owner_spend_cap_blocks_paid_overage_before_processing(tmp_path: Path) -
             billing = session.get(BillingAccount, organization_id)
             billing.status = "ACTIVE"
             billing.payment_method_present = True
-            billing.stripe_customer_id = "cus_test"
+            billing.razorpay_subscription_id = "sub_test"
         cap = client.patch(
             f"/api/v1/organizations/{organization_id}/usage/spend-cap",
             headers=_headers(),
-            json={"spend_cap_cents": 50},
+            json={"spend_cap_paise": 50},
         )
         blocked = client.post(
             "/api/v1/decisions",
@@ -470,9 +477,167 @@ def test_owner_spend_cap_blocks_paid_overage_before_processing(tmp_path: Path) -
         )
 
     assert cap.status_code == 200
-    assert cap.json()["spend_cap_cents"] == 50
+    assert cap.json()["spend_cap_paise"] == 50
     assert blocked.status_code == 402
     assert blocked.json()["error"]["code"] == "spend_cap_reached"
+
+
+def test_razorpay_subscription_link_and_signed_webhook(
+    tmp_path: Path, monkeypatch
+) -> None:
+    settings = replace(
+        _settings(tmp_path),
+        razorpay_key_id="rzp_test_key",
+        razorpay_key_secret="rzp_test_secret",
+        razorpay_webhook_secret="webhook-test-secret",
+        razorpay_plan_id="plan_00000000000001",
+    )
+    database = Database(settings)
+    client = TestClient(
+        create_app(settings=settings, database=database, enable_saas=True)
+    )
+    monkeypatch.setattr(
+        billing_service,
+        "_request",
+        lambda *_args, **_kwargs: {
+            "id": "sub_00000000000001",
+            "short_url": "https://rzp.io/i/test-link",
+            "status": "created",
+        },
+    )
+    with client:
+        organization_id, _workspace_id = _onboard(client)
+        subscription = client.post(
+            f"/api/v1/organizations/{organization_id}/billing/subscription",
+            headers=_headers(),
+        )
+        event = {
+            "event": "subscription.activated",
+            "payload": {
+                "subscription": {
+                    "entity": {
+                        "id": "sub_00000000000001",
+                        "customer_id": "cust_00000000000001",
+                        "status": "active",
+                        "current_end": 1_800_000_000,
+                        "short_url": "https://rzp.io/i/test-link",
+                        "notes": {"agentmesh_organization_id": organization_id},
+                    }
+                }
+            },
+        }
+        body = json.dumps(event, separators=(",", ":")).encode()
+        signature = hmac.new(
+            settings.razorpay_webhook_secret.encode(), body, hashlib.sha256
+        ).hexdigest()
+        webhook = client.post(
+            "/api/v1/webhooks/razorpay",
+            content=body,
+            headers={
+                "Content-Type": "application/json",
+                "X-Razorpay-Signature": signature,
+                "X-Razorpay-Event-Id": "event-0001",
+            },
+        )
+        duplicate = client.post(
+            "/api/v1/webhooks/razorpay",
+            content=body,
+            headers={
+                "Content-Type": "application/json",
+                "X-Razorpay-Signature": signature,
+                "X-Razorpay-Event-Id": "event-0001",
+            },
+        )
+        with client.app.state.database.session() as session:
+            account = session.get(BillingAccount, organization_id)
+            stored_event = session.get(RazorpayEvent, "event-0001")
+
+    assert subscription.status_code == 200
+    assert subscription.json()["url"] == "https://rzp.io/i/test-link"
+    assert webhook.status_code == 204
+    assert duplicate.status_code == 204
+    assert account.status == "ACTIVE"
+    assert account.payment_method_present is True
+    assert account.razorpay_customer_id == "cust_00000000000001"
+    assert stored_event is not None
+
+
+def test_razorpay_webhook_rejects_invalid_signature(tmp_path: Path) -> None:
+    settings = replace(
+        _settings(tmp_path),
+        razorpay_webhook_secret="webhook-test-secret",
+    )
+    database = Database(settings)
+    with TestClient(
+        create_app(settings=settings, database=database, enable_saas=True)
+    ) as client:
+        response = client.post(
+            "/api/v1/webhooks/razorpay",
+            content=b'{"event":"subscription.activated"}',
+            headers={"X-Razorpay-Signature": "invalid"},
+        )
+
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "invalid_webhook"
+
+
+def test_paid_usage_is_delivered_as_razorpay_addon(
+    tmp_path: Path, monkeypatch
+) -> None:
+    settings = replace(
+        _settings(
+            tmp_path,
+            free_decisions=0,
+            overage_unit_price_paise=250,
+        ),
+        razorpay_key_id="rzp_test_key",
+        razorpay_key_secret="rzp_test_secret",
+    )
+    captured: dict = {}
+
+    def fake_request(_settings, method, path, payload=None):
+        captured.update(method=method, path=path, payload=payload)
+        return {"id": "addon_00000000000001"}
+
+    monkeypatch.setattr(billing_service, "_request", fake_request)
+    database = Database(settings)
+    with TestClient(
+        create_app(settings=settings, database=database, enable_saas=True)
+    ) as client:
+        organization_id, workspace_id = _onboard(client)
+        _upload_and_publish(client, organization_id, workspace_id)
+        key = _create_key(client, organization_id, workspace_id)
+        with client.app.state.database.session() as session:
+            account = session.get(BillingAccount, organization_id)
+            account.status = "ACTIVE"
+            account.payment_method_present = True
+            account.razorpay_subscription_id = "sub_00000000000001"
+        decision = client.post(
+            "/api/v1/decisions",
+            headers={
+                "Authorization": f"Bearer {key}",
+                "Idempotency-Key": "razorpay-addon-test",
+            },
+            json={"input": "What is the return policy?"},
+        )
+        sent = billing_service.report_usage_addons(
+            client.app.state.database, settings
+        )
+        with client.app.state.database.session() as session:
+            usage_event = session.scalar(
+                select(UsageEvent).where(
+                    UsageEvent.organization_id == organization_id
+                )
+            )
+
+    assert decision.status_code == 200
+    assert sent == 1
+    assert captured["method"] == "POST"
+    assert captured["path"] == "/subscriptions/sub_00000000000001/addons"
+    assert captured["payload"]["item"]["amount"] == 250
+    assert captured["payload"]["item"]["currency"] == "INR"
+    assert usage_event.razorpay_status == "SENT"
+    assert usage_event.razorpay_addon_id == "addon_00000000000001"
 
 
 def test_dlp_rejection_is_not_billed(tmp_path: Path) -> None:

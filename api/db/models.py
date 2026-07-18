@@ -60,7 +60,7 @@ class Organization(Base, TimestampMixin):
     slug: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
     status: Mapped[str] = mapped_column(String(32), default="ACTIVE", nullable=False)
     billing_email: Mapped[str] = mapped_column(String(320), nullable=False)
-    spend_cap_cents: Mapped[int | None] = mapped_column(Integer)
+    spend_cap_paise: Mapped[int | None] = mapped_column(Integer)
     raw_content_retention_days: Mapped[int] = mapped_column(
         Integer, default=30, nullable=False
     )
@@ -489,8 +489,10 @@ class UsageEvent(Base):
     period_key: Mapped[str] = mapped_column(String(7), nullable=False)
     units: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     billable_units: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    stripe_status: Mapped[str] = mapped_column(String(24), default="PENDING", nullable=False)
-    stripe_event_id: Mapped[str | None] = mapped_column(String(128))
+    razorpay_status: Mapped[str] = mapped_column(
+        String(24), default="PENDING", nullable=False
+    )
+    razorpay_addon_id: Mapped[str | None] = mapped_column(String(128))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, nullable=False
     )
@@ -522,8 +524,11 @@ class BillingAccount(Base, TimestampMixin):
     organization_id: Mapped[str] = mapped_column(
         ForeignKey("organizations.id", ondelete="CASCADE"), primary_key=True
     )
-    stripe_customer_id: Mapped[str | None] = mapped_column(String(128), unique=True)
-    stripe_subscription_id: Mapped[str | None] = mapped_column(String(128), unique=True)
+    razorpay_customer_id: Mapped[str | None] = mapped_column(String(128), unique=True)
+    razorpay_subscription_id: Mapped[str | None] = mapped_column(
+        String(128), unique=True
+    )
+    razorpay_subscription_url: Mapped[str | None] = mapped_column(String(500))
     status: Mapped[str] = mapped_column(String(32), default="FREE", nullable=False)
     payment_method_present: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False
@@ -554,8 +559,8 @@ class BillingOutbox(Base):
     )
 
 
-class StripeEvent(Base):
-    __tablename__ = "stripe_events"
+class RazorpayEvent(Base):
+    __tablename__ = "razorpay_events"
 
     event_id: Mapped[str] = mapped_column(String(128), primary_key=True)
     event_type: Mapped[str] = mapped_column(String(120), nullable=False)
