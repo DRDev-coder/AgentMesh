@@ -16,6 +16,7 @@ declare global {
       render(element: HTMLElement, options: {
         sitekey: string
         callback: (token: string) => void
+        'error-callback': (errorCode: string) => boolean
         'expired-callback': () => void
         theme: 'light'
       }): string
@@ -29,20 +30,52 @@ const captchaSiteKey = runtimeConfig(
   import.meta.env.VITE_TURNSTILE_SITE_KEY,
 )
 
-function SignupCaptcha({ onToken }: { onToken: (token: string | null) => void }) {
+export function turnstileErrorMessage(errorCode: string): string {
+  if (errorCode === '110200') {
+    return `Signup verification is not authorized for ${window.location.hostname}. Please contact support.`
+  }
+  if (errorCode.startsWith('110')) {
+    return 'Signup verification is misconfigured. Please contact support.'
+  }
+  if (errorCode.startsWith('300') || errorCode.startsWith('600')) {
+    return 'The security check failed. Refresh the page or try another browser.'
+  }
+  return 'The security check could not start. Refresh the page and try again.'
+}
+
+function SignupCaptcha({
+  onToken,
+  onError,
+}: {
+  onToken: (token: string | null) => void
+  onError: (message: string | null) => void
+}) {
   const container = React.useRef<HTMLDivElement>(null)
   React.useEffect(() => {
     if (!captchaSiteKey || !container.current) return
     const renderWidget = () => {
       if (!window.turnstile || !container.current || container.current.dataset.rendered) return
-      container.current.dataset.rendered = 'true'
-      const widgetId = window.turnstile.render(container.current, {
-        sitekey: captchaSiteKey,
-        callback: (token) => onToken(token),
-        'expired-callback': () => onToken(null),
-        theme: 'light',
-      })
-      container.current.dataset.widgetId = widgetId
+      try {
+        const widgetId = window.turnstile.render(container.current, {
+          sitekey: captchaSiteKey,
+          callback: (token) => {
+            onError(null)
+            onToken(token)
+          },
+          'error-callback': (errorCode) => {
+            onToken(null)
+            onError(turnstileErrorMessage(errorCode))
+            return true
+          },
+          'expired-callback': () => onToken(null),
+          theme: 'light',
+        })
+        container.current.dataset.rendered = 'true'
+        container.current.dataset.widgetId = widgetId
+      } catch {
+        onToken(null)
+        onError('The security check could not start. Refresh the page and try again.')
+      }
     }
     const existing = document.querySelector<HTMLScriptElement>('script[data-agentmesh-turnstile]')
     if (existing) {
@@ -56,9 +89,16 @@ function SignupCaptcha({ onToken }: { onToken: (token: string | null) => void })
     script.defer = true
     script.dataset.agentmeshTurnstile = 'true'
     script.addEventListener('load', renderWidget)
+    const handleScriptError = () => {
+      onError('The security check could not load. Check your connection and try again.')
+    }
+    script.addEventListener('error', handleScriptError)
     document.head.appendChild(script)
-    return () => script.removeEventListener('load', renderWidget)
-  }, [onToken])
+    return () => {
+      script.removeEventListener('load', renderWidget)
+      script.removeEventListener('error', handleScriptError)
+    }
+  }, [onError, onToken])
   if (!captchaSiteKey) return <div className="alert danger">Signup CAPTCHA is not configured.</div>
   return <div ref={container} className="captcha-container" aria-label="Signup verification" />
 }
@@ -100,6 +140,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaError, setCaptchaError] = useState<string | null>(null)
   const { register, handleSubmit, formState } = useForm<Credentials>({
     resolver: zodResolver(credentialsSchema(mode)),
     defaultValues: {
@@ -207,7 +248,16 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
               {formState.errors.terms && <small className="field-error">{formState.errors.terms.message}</small>}
             </>
           )}
-          {mode === 'signup' && !auth.developmentMode && <SignupCaptcha onToken={setCaptchaToken} />}
+          {mode === 'signup' && !auth.developmentMode && (
+            <>
+              <SignupCaptcha onToken={setCaptchaToken} onError={setCaptchaError} />
+              {captchaError && (
+                <div className="alert danger">
+                  <strong>Verification unavailable</strong><p>{captchaError}</p>
+                </div>
+              )}
+            </>
+          )}
           <button className="button primary" disabled={formState.isSubmitting || (mode === 'signup' && !auth.developmentMode && !captchaToken)}>
             {formState.isSubmitting ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
             <ArrowRight size={15} />

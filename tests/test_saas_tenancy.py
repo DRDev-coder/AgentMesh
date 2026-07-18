@@ -68,6 +68,34 @@ def _headers(user: str = "owner-1") -> dict[str, str]:
     }
 
 
+def test_cors_allows_configured_frontend_on_preflight_and_auth_error(
+    tmp_path: Path,
+) -> None:
+    origin = "https://agentmesh-web.example.com"
+    settings = replace(_settings(tmp_path), cors_origins=(origin,))
+    database = Database(settings)
+    with TestClient(
+        create_app(settings=settings, database=database, enable_saas=True)
+    ) as client:
+        preflight = client.options(
+            "/api/v1/organizations",
+            headers={
+                "Origin": origin,
+                "Access-Control-Request-Method": "GET",
+                "Access-Control-Request-Headers": "authorization,content-type",
+            },
+        )
+        unauthorized = client.get(
+            "/api/v1/organizations",
+            headers={"Origin": origin},
+        )
+
+    assert preflight.status_code == 200
+    assert preflight.headers["access-control-allow-origin"] == origin
+    assert unauthorized.status_code == 401
+    assert unauthorized.headers["access-control-allow-origin"] == origin
+
+
 def _onboard(client: TestClient, user: str = "owner-1") -> tuple[str, str]:
     response = client.post(
         "/api/v1/organizations",

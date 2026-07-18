@@ -3,7 +3,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { AuthPage } from './AuthPages'
+import { AuthPage, turnstileErrorMessage } from './AuthPages'
 import { AuthProvider } from './AuthProvider'
 
 function renderAuth(path: '/login' | '/signup') {
@@ -63,5 +63,9 @@ describe('authentication pages', () => {
       workspaceName: 'Support',
       template: 'GENERAL',
     })
+  })
+
+  it('explains an unauthorized Turnstile hostname', () => {
+    expect(turnstileErrorMessage('110200')).toContain('not authorized')
   })
 })
