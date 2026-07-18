@@ -139,7 +139,8 @@ export default function LandingPage() {
           <div className="landing-nav-links">
             <a href="#features">Features</a>
             <a href="#how-it-works">How it works</a>
-            <a href="#metrics">Why AgentMesh</a>
+            <Link to="/docs">API docs</Link>
+            <Link to="/company">Company</Link>
           </div>
           <div className="landing-nav-actions">
             <Link to="/login" className="button secondary small">Sign in</Link>
@@ -315,17 +316,17 @@ export default function LandingPage() {
             <div>
               <h4>Developers</h4>
               <ul>
-                <li><Link to="/signup">API documentation</Link></li>
-                <li><Link to="/signup">SDK & libraries</Link></li>
-                <li><Link to="/signup">Changelog</Link></li>
+                <li><Link to="/docs">API documentation</Link></li>
+                <li><Link to="/developers#sdks">SDK & libraries</Link></li>
+                <li><Link to="/developers#changelog">Changelog</Link></li>
               </ul>
             </div>
             <div>
               <h4>Company</h4>
               <ul>
-                <li><Link to="/signup">About</Link></li>
-                <li><Link to="/signup">Blog</Link></li>
-                <li><Link to="/signup">Careers</Link></li>
+                <li><Link to="/company">About</Link></li>
+                <li><Link to="/company#blog">Blog</Link></li>
+                <li><Link to="/company#careers">Careers</Link></li>
               </ul>
             </div>
           </div>
@@ -333,8 +334,8 @@ export default function LandingPage() {
         <div className="landing-footer-bottom">
           <span>© {new Date().getFullYear()} AgentMesh. All rights reserved.</span>
           <div>
-            <a href="#">Privacy</a>
-            <a href="#">Terms</a>
+            <Link to="/privacy">Privacy</Link>
+            <Link to="/terms">Terms</Link>
           </div>
         </div>
       </footer>

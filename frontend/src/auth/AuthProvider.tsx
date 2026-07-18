@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
-import { authConfigured, supabase } from '../lib/supabase'
+import { authConfigured, googleOAuthEnabled, supabase } from '../lib/supabase'
 import { setDevelopmentIdentity, setTokenProvider } from '../lib/saas-api'
+import type { PendingSignupDetails } from './signup-details'
 
 interface AuthContextValue {
   user: User | { id: string; email?: string } | null
@@ -9,9 +10,10 @@ interface AuthContextValue {
   loading: boolean
   developmentMode: boolean
   signIn(email: string, password: string): Promise<void>
-  signUp(email: string, password: string, captchaToken?: string): Promise<void>
+  signUp(email: string, password: string, details: PendingSignupDetails, captchaToken?: string): Promise<void>
   signInWithGoogle(): Promise<void>
   sendPasswordReset(email: string): Promise<void>
+  updatePassword(password: string): Promise<void>
   signOut(): Promise<void>
 }
 
@@ -63,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
     },
-    async signUp(email, password, captchaToken) {
+    async signUp(email, password, details, captchaToken) {
       if (!supabase) {
         const id = `dev-${email.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 60)}`
         setDevelopmentIdentity(id, email)
@@ -76,12 +78,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         options: {
           emailRedirectTo: `${window.location.origin}/verify`,
           captchaToken,
+          data: {
+            full_name: details.fullName,
+            company_name: details.companyName,
+            workspace_name: details.workspaceName,
+            industry_template: details.template,
+          },
         },
       })
       if (error) throw error
     },
     async signInWithGoogle() {
       if (!supabase) return
+      if (!googleOAuthEnabled) {
+        throw new Error('Google sign-in is not enabled for this deployment. Use email and password.')
+      }
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: `${window.location.origin}/onboarding` },
@@ -91,8 +102,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async sendPasswordReset(email) {
       if (!supabase) return
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/verify`,
+        redirectTo: `${window.location.origin}/reset-password`,
       })
+      if (error) throw error
+    },
+    async updatePassword(password) {
+      if (!supabase) return
+      const { error } = await supabase.auth.updateUser({ password })
       if (error) throw error
     },
     async signOut() {

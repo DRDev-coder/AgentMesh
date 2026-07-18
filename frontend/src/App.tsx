@@ -1,7 +1,7 @@
 import React from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Navigate, Outlet, Route, Routes, useNavigate } from 'react-router-dom'
-import { AuthPage, ForgotPasswordPage, VerifyPage } from './auth/AuthPages'
+import { Link, Navigate, Outlet, Route, Routes, useSearchParams } from 'react-router-dom'
+import { AuthPage, ForgotPasswordPage, ResetPasswordPage, VerifyPage } from './auth/AuthPages'
 import { useAuth } from './auth/AuthProvider'
 import SaaSShell from './components/SaaSShell'
 import { saasRequest, type Organization, type Workspace } from './lib/saas-api'
@@ -9,6 +9,7 @@ import LandingPage from './pages/LandingPage'
 import AdminDashboard from './pages/AdminDashboard'
 import OnboardingPage from './pages/OnboardingPage'
 import AcceptInvitePage from './pages/AcceptInvitePage'
+import { ApiDocumentationPage, CompanyPage, DevelopersPublicPage, LegalPage } from './pages/PublicPages'
 import {
   ConfigurationPage,
   DecisionsPage,
@@ -49,11 +50,21 @@ function EntryRedirect() {
 }
 
 function BillingRedirect() {
-  const navigate = useNavigate()
-  React.useEffect(() => {
-    void navigate('/dashboard', { replace: true })
-  }, [navigate])
-  return <div className="fullscreen-loading">Returning to billing…</div>
+  const [searchParams] = useSearchParams()
+  if (searchParams.get('demo_payment') === 'success') {
+    return (
+      <main className="onboarding-layout">
+        <section className="onboarding-card completion-card">
+          <span className="completion-mark">✓</span>
+          <p className="eyebrow">Demo billing</p>
+          <h1>Payment successful.</h1>
+          <p>This staging fallback activated demo billing without charging money or contacting Razorpay. Production can never enable this mode.</p>
+          <Link className="button primary" to="/dashboard">Continue to dashboard</Link>
+        </section>
+      </main>
+    )
+  }
+  return <Navigate to="/dashboard" replace />
 }
 
 export default function App() {
@@ -64,7 +75,13 @@ export default function App() {
       <Route path="/login" element={<AuthPage mode="login" />} />
       <Route path="/signup" element={<AuthPage mode="signup" />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/verify" element={<VerifyPage />} />
+      <Route path="/docs" element={<ApiDocumentationPage />} />
+      <Route path="/developers" element={<DevelopersPublicPage />} />
+      <Route path="/company" element={<CompanyPage />} />
+      <Route path="/privacy" element={<LegalPage kind="privacy" />} />
+      <Route path="/terms" element={<LegalPage kind="terms" />} />
 
       {/* Protected routes */}
       <Route element={<ProtectedRoute />}>

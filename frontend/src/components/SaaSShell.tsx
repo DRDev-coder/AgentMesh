@@ -12,6 +12,7 @@ import {
   LogOut,
   MessageSquare,
   Settings,
+  ShieldCheck,
   SlidersHorizontal,
   Users,
 } from 'lucide-react'
@@ -41,6 +42,12 @@ export interface WorkspaceRouteContext {
   basePath: string
 }
 
+interface PlatformAccess {
+  granted: boolean
+  role: string | null
+  mfa_verified: boolean
+}
+
 export default function SaaSShell() {
   const auth = useAuth()
   const params = useParams()
@@ -55,6 +62,11 @@ export default function SaaSShell() {
     queryKey: ['workspaces', organization?.id],
     queryFn: () => saasRequest<Workspace[]>(`/organizations/${organization!.id}/workspaces`),
     enabled: Boolean(organization),
+  })
+  const platformAccess = useQuery({
+    queryKey: ['platform-access'],
+    queryFn: () => saasRequest<PlatformAccess>('/platform/access'),
+    retry: false,
   })
   const workspace = workspacesQuery.data?.find((value) => value.slug === params.workspaceSlug)
 
@@ -125,6 +137,7 @@ export default function SaaSShell() {
           </dl>
         </section>
         <div className="sidebar-footer">
+          {platformAccess.data?.granted && <NavLink to="/platform" className="platform-admin-link"><ShieldCheck size={13} />Platform admin</NavLink>}
           <button type="button" onClick={() => void auth.signOut()}><LogOut size={13} />Sign out</button>
           <span>{auth.user?.email}</span>
         </div>

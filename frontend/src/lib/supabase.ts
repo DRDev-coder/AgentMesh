@@ -8,6 +8,10 @@ const publishableKey = runtimeConfig(
 )
 
 export const authConfigured = Boolean(url && publishableKey)
+export const googleOAuthEnabled = runtimeConfig(
+  'VITE_GOOGLE_OAUTH_ENABLED',
+  import.meta.env.VITE_GOOGLE_OAUTH_ENABLED,
+)?.toLowerCase() === 'true'
 
 export const supabase: SupabaseClient | null = url && publishableKey
   ? createClient(url, publishableKey, {

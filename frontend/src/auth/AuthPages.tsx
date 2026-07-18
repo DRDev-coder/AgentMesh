@@ -7,6 +7,8 @@ import { ArrowRight, CheckCircle2 } from 'lucide-react'
 import { useAuth } from './AuthProvider'
 import { MeshMark } from '../components/AppShell'
 import { runtimeConfig } from '../runtime-config'
+import { googleOAuthEnabled } from '../lib/supabase'
+import { savePendingSignup } from './signup-details'
 
 declare global {
   interface Window {
@@ -61,12 +63,37 @@ function SignupCaptcha({ onToken }: { onToken: (token: string | null) => void })
   return <div ref={container} className="captcha-container" aria-label="Signup verification" />
 }
 
-const credentialsSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8, 'Use at least eight characters.'),
-})
+function credentialsSchema(mode: 'login' | 'signup') {
+  return z.object({
+    email: z.string().trim().email('Enter a valid work email.'),
+    password: z.string().min(8, 'Use at least eight characters.'),
+    confirmPassword: z.string().optional(),
+    fullName: z.string().trim().optional(),
+    companyName: z.string().trim().optional(),
+    workspaceName: z.string().trim().optional(),
+    template: z.enum(['GENERAL', 'FINANCE', 'HEALTHCARE', 'ECOMMERCE']).optional(),
+    terms: z.boolean().optional(),
+  }).superRefine((values, context) => {
+    if (mode !== 'signup') return
+    if (!values.fullName || values.fullName.length < 2) {
+      context.addIssue({ code: 'custom', path: ['fullName'], message: 'Enter your full name.' })
+    }
+    if (!values.companyName || values.companyName.length < 2) {
+      context.addIssue({ code: 'custom', path: ['companyName'], message: 'Enter your company name.' })
+    }
+    if (!values.workspaceName || values.workspaceName.length < 2) {
+      context.addIssue({ code: 'custom', path: ['workspaceName'], message: 'Enter a workspace name.' })
+    }
+    if (values.confirmPassword !== values.password) {
+      context.addIssue({ code: 'custom', path: ['confirmPassword'], message: 'Passwords do not match.' })
+    }
+    if (!values.terms) {
+      context.addIssue({ code: 'custom', path: ['terms'], message: 'Accept the terms to continue.' })
+    }
+  })
+}
 
-type Credentials = z.infer<typeof credentialsSchema>
+type Credentials = z.infer<ReturnType<typeof credentialsSchema>>
 
 export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
   const auth = useAuth()
@@ -74,7 +101,12 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
   const [error, setError] = useState<string | null>(null)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const { register, handleSubmit, formState } = useForm<Credentials>({
-    resolver: zodResolver(credentialsSchema),
+    resolver: zodResolver(credentialsSchema(mode)),
+    defaultValues: {
+      workspaceName: 'Support',
+      template: 'GENERAL',
+      terms: false,
+    },
   })
 
   if (auth.user) return <Navigate to="/dashboard" replace />
@@ -83,7 +115,16 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
     setError(null)
     try {
       if (mode === 'login') await auth.signIn(values.email, values.password)
-      else await auth.signUp(values.email, values.password, captchaToken || undefined)
+      else {
+        const details = {
+          fullName: values.fullName!,
+          companyName: values.companyName!,
+          workspaceName: values.workspaceName!,
+          template: values.template || 'GENERAL',
+        }
+        await auth.signUp(values.email, values.password, details, captchaToken || undefined)
+        savePendingSignup(details)
+      }
       navigate(mode === 'signup' && !auth.developmentMode ? '/verify' : '/dashboard')
     } catch (value) {
       setError(value instanceof Error ? value.message : 'Authentication failed.')
@@ -107,11 +148,25 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
         </ul>
       </section>
       <section className="auth-form-panel">
-        <form className="auth-card" onSubmit={submit}>
+        <form className={`auth-card ${mode === 'signup' ? 'signup-card' : ''}`} onSubmit={submit}>
           <p className="eyebrow">{mode === 'login' ? 'Welcome back' : 'Create your company'}</p>
           <h2>{mode === 'login' ? 'Sign in to AgentMesh' : 'Start building with AgentMesh'}</h2>
-          <p>{auth.developmentMode ? 'Local authentication mode is active.' : 'Use a verified work email to continue.'}</p>
+          <p>{auth.developmentMode ? 'Local authentication mode is active.' : mode === 'login' ? 'Use your verified work email to continue.' : 'Create your account and first isolated workspace in one step.'}</p>
           {error && <div className="alert danger"><strong>Authentication failed</strong><p>{error}</p></div>}
+          {mode === 'signup' && (
+            <div className="auth-signup-grid">
+              <label>
+                <span>Full name</span>
+                <input autoComplete="name" {...register('fullName')} />
+                {formState.errors.fullName && <small>{formState.errors.fullName.message}</small>}
+              </label>
+              <label>
+                <span>Company name</span>
+                <input autoComplete="organization" placeholder="Acme Support" {...register('companyName')} />
+                {formState.errors.companyName && <small>{formState.errors.companyName.message}</small>}
+              </label>
+            </div>
+          )}
           <label>
             <span>Work email</span>
             <input type="email" autoComplete="email" {...register('email')} />
@@ -122,13 +177,50 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
             <input type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} {...register('password')} />
             {formState.errors.password && <small>{formState.errors.password.message}</small>}
           </label>
+          {mode === 'signup' && (
+            <>
+              <label>
+                <span>Confirm password</span>
+                <input type="password" autoComplete="new-password" {...register('confirmPassword')} />
+                {formState.errors.confirmPassword && <small>{formState.errors.confirmPassword.message}</small>}
+              </label>
+              <div className="auth-signup-grid">
+                <label>
+                  <span>First workspace</span>
+                  <input {...register('workspaceName')} />
+                  {formState.errors.workspaceName && <small>{formState.errors.workspaceName.message}</small>}
+                </label>
+                <label>
+                  <span>Support template</span>
+                  <select {...register('template')}>
+                    <option value="GENERAL">General support</option>
+                    <option value="FINANCE">Financial support</option>
+                    <option value="HEALTHCARE">Healthcare information</option>
+                    <option value="ECOMMERCE">E-commerce support</option>
+                  </select>
+                </label>
+              </div>
+              <label className="auth-terms-check">
+                <input type="checkbox" {...register('terms')} />
+                <span>I agree to the <Link to="/terms">Terms</Link> and <Link to="/privacy">Privacy notice</Link>.</span>
+              </label>
+              {formState.errors.terms && <small className="field-error">{formState.errors.terms.message}</small>}
+            </>
+          )}
           {mode === 'signup' && !auth.developmentMode && <SignupCaptcha onToken={setCaptchaToken} />}
           <button className="button primary" disabled={formState.isSubmitting || (mode === 'signup' && !auth.developmentMode && !captchaToken)}>
             {formState.isSubmitting ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
             <ArrowRight size={15} />
           </button>
-          {!auth.developmentMode && (
-            <button className="button secondary" type="button" onClick={() => void auth.signInWithGoogle()}>
+          {mode === 'login' && !auth.developmentMode && googleOAuthEnabled && (
+            <button className="button secondary" type="button" onClick={async () => {
+              setError(null)
+              try {
+                await auth.signInWithGoogle()
+              } catch (value) {
+                setError(value instanceof Error ? value.message : 'Google sign-in failed.')
+              }
+            }}>
               Continue with Google
             </button>
           )}
@@ -179,15 +271,57 @@ export function ForgotPasswordPage() {
   )
 }
 
+export function ResetPasswordPage() {
+  const auth = useAuth()
+  const navigate = useNavigate()
+  const [password, setPassword] = useState('')
+  const [confirmation, setConfirmation] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  return (
+    <main className="auth-layout compact">
+      <section className="auth-form-panel">
+        <form className="auth-card" onSubmit={async (event) => {
+          event.preventDefault()
+          setError(null)
+          if (password.length < 8) {
+            setError('Use at least eight characters.')
+            return
+          }
+          if (password !== confirmation) {
+            setError('Passwords do not match.')
+            return
+          }
+          try {
+            await auth.updatePassword(password)
+            navigate('/dashboard', { replace: true })
+          } catch (value) {
+            setError(value instanceof Error ? value.message : 'Password update failed.')
+          }
+        }}>
+          <p className="eyebrow">Account recovery</p>
+          <h2>Choose a new password</h2>
+          {!auth.loading && !auth.user && <div className="alert danger">Open this page from the recovery link in your email.</div>}
+          {error && <div className="alert danger">{error}</div>}
+          <label><span>New password</span><input type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
+          <label><span>Confirm password</span><input type="password" autoComplete="new-password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} required /></label>
+          <button className="button primary" disabled={auth.loading || !auth.user}>Update password</button>
+          <footer><Link to="/login">Return to sign in</Link></footer>
+        </form>
+      </section>
+    </main>
+  )
+}
+
 export function VerifyPage() {
+  const auth = useAuth()
   return (
     <main className="auth-layout compact">
       <section className="auth-form-panel">
         <div className="auth-card">
           <p className="eyebrow">Identity check</p>
           <h2>Verify your email</h2>
-          <p>Open the confirmation link sent to your inbox. Once verified, continue to company setup.</p>
-          <Link className="button primary" to="/onboarding">Continue to onboarding <ArrowRight size={15} /></Link>
+          <p>Open the confirmation link sent to your inbox. After verification, your signup details will be ready for workspace creation.</p>
+          <Link className="button primary" to={auth.user ? '/dashboard' : '/login'}>{auth.user ? 'Continue to workspace setup' : 'Sign in after verification'} <ArrowRight size={15} /></Link>
         </div>
       </section>
     </main>

@@ -4,7 +4,13 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from api.auth import Principal, get_principal, require_platform_admin, sync_user_profile
+from api.auth import (
+    Principal,
+    get_principal,
+    require_platform_admin,
+    require_verified_principal,
+    sync_user_profile,
+)
 from api.db.models import (
     BackgroundJob,
     AbuseSignal,
@@ -12,6 +18,7 @@ from api.db.models import (
     EmailOutbox,
     Organization,
     IndustryTemplate,
+    PlatformRole,
     UsageEvent,
     WebhookDelivery,
 )
@@ -26,6 +33,21 @@ def _authorize(session: Session, principal: Principal) -> None:
     sync_user_profile(session, principal)
     require_platform_admin(session, principal)
     set_platform_database_context(session, True)
+
+
+@router.get("/access")
+def platform_access(
+    session: Session = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
+) -> dict:
+    require_verified_principal(principal)
+    sync_user_profile(session, principal)
+    role = session.get(PlatformRole, principal.user_id)
+    return {
+        "granted": role is not None,
+        "role": role.role if role else None,
+        "mfa_verified": principal.has_mfa,
+    }
 
 
 @router.get("/organizations", response_model=list[PlatformOrganizationView])

@@ -19,6 +19,7 @@ from api.db.models import (
     DecisionSession,
     IdempotencyRecord,
     Organization,
+    PlatformRole,
     RazorpayEvent,
     SaaSDecision,
     UsageEvent,
@@ -98,6 +99,37 @@ def _create_key(
     secret = response.json()["secret"]
     assert secret.startswith("am_test_")
     return secret
+
+
+def test_platform_access_discovery_reports_grant_and_mfa(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        _onboard(client)
+        ordinary = client.get("/api/v1/platform/access", headers=_headers())
+        with client.app.state.database.session() as session:
+            session.add(
+                PlatformRole(
+                    auth_user_id="owner-1",
+                    role="PLATFORM_ADMIN",
+                    granted_by="test-suite",
+                )
+            )
+        elevated = client.get(
+            "/api/v1/platform/access",
+            headers={**_headers(), "X-Dev-AAL": "aal2"},
+        )
+
+    assert ordinary.status_code == 200
+    assert ordinary.json() == {
+        "granted": False,
+        "role": None,
+        "mfa_verified": False,
+    }
+    assert elevated.status_code == 200
+    assert elevated.json() == {
+        "granted": True,
+        "role": "PLATFORM_ADMIN",
+        "mfa_verified": True,
+    }
 
 
 def _upload_and_publish(
@@ -560,6 +592,45 @@ def test_razorpay_subscription_link_and_signed_webhook(
     assert account.payment_method_present is True
     assert account.razorpay_customer_id == "cust_00000000000001"
     assert stored_event is not None
+
+
+def test_staging_demo_billing_activates_without_contacting_razorpay(
+    tmp_path: Path, monkeypatch
+) -> None:
+    settings = replace(
+        _settings(tmp_path),
+        razorpay_demo_mode=True,
+        razorpay_key_id="",
+        razorpay_key_secret="",
+        razorpay_plan_id="",
+        public_app_url="https://staging.example.com",
+    )
+    monkeypatch.setattr(
+        billing_service,
+        "_request",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("demo billing must not contact Razorpay")
+        ),
+    )
+    database = Database(settings)
+    with TestClient(
+        create_app(settings=settings, database=database, enable_saas=True)
+    ) as client:
+        organization_id, _workspace_id = _onboard(client)
+        response = client.post(
+            f"/api/v1/organizations/{organization_id}/billing/subscription",
+            headers=_headers(),
+        )
+        with client.app.state.database.session() as session:
+            account = session.get(BillingAccount, organization_id)
+
+    assert response.status_code == 200
+    assert response.json()["url"] == (
+        "https://staging.example.com/billing?demo_payment=success"
+    )
+    assert account.status == "ACTIVE"
+    assert account.payment_method_present is True
+    assert account.razorpay_subscription_id == f"demo_sub_{organization_id}"
 
 
 def test_razorpay_webhook_rejects_invalid_signature(tmp_path: Path) -> None:

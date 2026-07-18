@@ -6,6 +6,7 @@ import { ArrowRight, Check, Copy, KeyRound } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { saasRequest, type ApiKeyRecord, type Organization, type Workspace } from '../lib/saas-api'
+import { clearPendingSignup, readPendingSignup } from '../auth/signup-details'
 
 const schema = z.object({
   companyName: z.string().min(2).max(160),
@@ -26,9 +27,14 @@ export default function OnboardingPage() {
   const [result, setResult] = useState<OnboardingResponse | null>(null)
   const [secret, setSecret] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [pendingSignup] = useState(readPendingSignup)
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { workspaceName: 'Support', template: 'GENERAL' },
+    defaultValues: {
+      companyName: pendingSignup?.companyName || '',
+      workspaceName: pendingSignup?.workspaceName || 'Support',
+      template: pendingSignup?.template || 'GENERAL',
+    },
   })
 
   const submit = form.handleSubmit(async (values) => {
@@ -58,6 +64,7 @@ export default function OnboardingPage() {
         setSecret(key.secret)
       }
       setResult(created)
+      clearPendingSignup()
       await queryClient.invalidateQueries({ queryKey: ['organizations'] })
     } catch (value) {
       setError(value instanceof Error ? value.message : 'Company setup failed.')
@@ -97,6 +104,7 @@ export default function OnboardingPage() {
         <p className="eyebrow">New organization</p>
         <h1>Configure your first AgentMesh workspace.</h1>
         <p>Each workspace has isolated documents, controls, API keys, reviews, and usage.</p>
+        {pendingSignup && <div className="alert success"><strong>Signup details restored</strong><p>Review the company and workspace choices you entered during signup, then create your test key.</p></div>}
         {error && <div className="alert danger"><strong>Setup failed</strong><p>{error}</p></div>}
         <div className="form-grid">
           <label><span>Company name</span><input {...form.register('companyName')} placeholder="Acme Support" />{form.formState.errors.companyName && <small>{form.formState.errors.companyName.message}</small>}</label>

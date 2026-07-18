@@ -15,7 +15,7 @@ import {
   Settings,
   ShieldCheck,
 } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { MeshMark } from '../components/AppShell'
 import { saasRequest, SaaSApiError } from '../lib/saas-api'
@@ -54,6 +54,12 @@ interface PlatformTemplate {
   version: number
   mandatory_rule_keys: string[]
   enabled: boolean
+}
+
+interface PlatformAccess {
+  granted: boolean
+  role: string | null
+  mfa_verified: boolean
 }
 
 /* ------------------------------------------------------------------ */
@@ -287,23 +293,41 @@ function TemplatesView({ templates }: { templates: PlatformTemplate[] | undefine
 export default function AdminDashboard() {
   const auth = useAuth()
   const [activeView, setActiveView] = useState('overview')
+  const access = useQuery({
+    queryKey: ['platform-access'],
+    queryFn: () => saasRequest<PlatformAccess>('/platform/access'),
+    retry: false,
+  })
+  const authorized = Boolean(access.data?.granted && access.data.mfa_verified)
 
   const metrics = useQuery({
     queryKey: ['platform-metrics'],
     queryFn: () => saasRequest<PlatformMetrics>('/platform/metrics'),
+    enabled: authorized,
   })
   const organizations = useQuery({
     queryKey: ['platform-organizations'],
     queryFn: () => saasRequest<PlatformOrganization[]>('/platform/organizations'),
+    enabled: authorized,
   })
   const health = useQuery({
     queryKey: ['platform-health'],
     queryFn: () => saasRequest<PlatformHealth>('/platform/service-health'),
+    enabled: authorized,
   })
   const templates = useQuery({
     queryKey: ['platform-templates'],
     queryFn: () => saasRequest<PlatformTemplate[]>('/platform/templates'),
+    enabled: authorized,
   })
+
+  if (access.isLoading) return <div className="fullscreen-loading"><span className="spin" /> Checking platform access…</div>
+  if (access.error || !access.data?.granted) {
+    return <main className="onboarding-layout"><section className="onboarding-card completion-card"><ShieldCheck size={28} /><p className="eyebrow">Restricted area</p><h1>Platform administrator access is not assigned.</h1><p>This console is separate from organization owner/admin access. A verified identity must be granted a platform role by an operator.</p><Link className="button primary" to="/dashboard">Return to workspace</Link></section></main>
+  }
+  if (!access.data.mfa_verified) {
+    return <main className="onboarding-layout"><section className="onboarding-card completion-card"><ShieldCheck size={28} /><p className="eyebrow">MFA required</p><h1>Verify a second factor to open the admin console.</h1><p>Your platform role is present, but the current Supabase session is only AAL1. Enroll and complete MFA, then sign in again.</p><Link className="button primary" to="/dashboard">Return to workspace</Link></section></main>
+  }
 
   const activeNav = ADMIN_NAV.find((item) => item.id === activeView) || ADMIN_NAV[0]
   const activeIndex = ADMIN_NAV.indexOf(activeNav) + 1

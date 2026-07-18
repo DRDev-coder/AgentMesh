@@ -13,7 +13,7 @@ The deployed staging URLs are:
 - frontend: `https://agentmesh-web.livelysmoke-efb633a4.centralindia.azurecontainerapps.io`;
 - API: `https://agentmesh-api.livelysmoke-efb633a4.centralindia.azurecontainerapps.io`.
 
-The current student deployment is intentionally a staging topology. Tenant records are durable in Supabase PostgreSQL and the Alembic schema is at `0002_razorpay_billing`, but uploaded source files, the legacy SQLite compatibility database, Redis state, and queued Celery messages are replica-local and can disappear after scale-down or revision replacement. Celery Beat also runs only while the HTTP-scaled API replica is active. Do not treat this as production.
+The current student deployment is intentionally a staging topology. Tenant records are durable in Supabase PostgreSQL and the Alembic schema is at `0002_razorpay_billing`, but uploaded source files, the legacy SQLite compatibility database, Redis state, and queued Celery messages are replica-local and can disappear after scale-down or revision replacement. Celery Beat also runs only while the HTTP-scaled API replica is active. Razorpay demo mode may be enabled here to show an explicitly labelled, no-charge success flow without contacting Razorpay; production startup rejects that flag. Do not treat this as production.
 
 Use the Supabase session pooler on port `5432` for Azure Container Apps. Supabase's direct database hostname is IPv6-only for this project, while the shared session pooler is IPv4-compatible. Migrations should continue to use the direct owner connection from a trusted IPv6-capable environment; the Azure runtime uses only the restricted application role.
 

@@ -58,7 +58,7 @@ Before setting `APP_ENV=production`:
 5. Set a dedicated webhook secret as `RAZORPAY_WEBHOOK_SECRET`; it is distinct from the API key secret.
 6. Supply `OVERAGE_UNIT_PRICE_PAISE`; completed overage decisions are added to the subscription as INR add-ons.
 
-Use Razorpay test mode in staging. Confirm raw-body HMAC rejection, duplicate `X-Razorpay-Event-Id` handling, authenticated/active/pending/halted/cancelled states, add-on delivery, and daily reconciliation before live mode. Ambiguous add-on timeouts are held for review instead of automatically retried because the provider endpoint has no idempotency key.
+Use Razorpay test mode in staging. For demos that must not contact Razorpay, `RAZORPAY_DEMO_MODE=true` returns an explicitly labelled, no-charge success page and marks demo add-ons as delivered locally. The application refuses to start with this flag in production. Confirm raw-body HMAC rejection, duplicate `X-Razorpay-Event-Id` handling, authenticated/active/pending/halted/cancelled states, add-on delivery, and daily reconciliation before live mode. Ambiguous add-on timeouts are held for review instead of automatically retried because the provider endpoint has no idempotency key.
 
 ## 4. Render API and workers
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 
 import httpx
@@ -80,13 +80,29 @@ def create_subscription(
     settings: Settings,
     context: TenantContext,
 ) -> str:
-    _require_configured(settings)
-    if not settings.razorpay_plan_id:
-        raise APIError(503, "billing_unavailable", "The Razorpay plan is not configured.")
     organization = session.get(Organization, context.organization_id)
     account = session.get(BillingAccount, context.organization_id)
     if organization is None or account is None:
         raise APIError(404, "not_found", "Organization not found.")
+    if settings.razorpay_demo_mode:
+        success_url = f"{settings.public_app_url}/billing?demo_payment=success"
+        account.razorpay_subscription_id = f"demo_sub_{organization.id}"
+        account.razorpay_subscription_url = success_url
+        account.status = "ACTIVE"
+        account.payment_method_present = True
+        account.current_period_end = datetime.now(timezone.utc) + timedelta(days=30)
+        record_audit(
+            session,
+            context,
+            "billing.demo_subscription_activated",
+            "billing_account",
+            organization.id,
+            {"demo_mode": True, "charged": False},
+        )
+        return success_url
+    _require_configured(settings)
+    if not settings.razorpay_plan_id:
+        raise APIError(503, "billing_unavailable", "The Razorpay plan is not configured.")
     if account.razorpay_subscription_url and account.status not in {
         "CANCELLED",
         "COMPLETED",
@@ -293,6 +309,25 @@ def process_razorpay_webhook(
 def report_usage_addons(
     database: Database, settings: Settings, limit: int = 100
 ) -> int:
+    if settings.razorpay_demo_mode:
+        sent = 0
+        with database.session() as session:
+            set_platform_database_context(session, True)
+            entries = session.scalars(
+                select(BillingOutbox)
+                .where(BillingOutbox.status.in_(["PENDING", "RETRY"]))
+                .order_by(BillingOutbox.created_at)
+                .limit(limit)
+            ).all()
+            for entry in entries:
+                set_tenant_database_context(session, entry.organization_id)
+                entry.status = "SENT"
+                usage = session.get(UsageEvent, entry.usage_event_id)
+                if usage:
+                    usage.razorpay_status = "SENT"
+                    usage.razorpay_addon_id = f"demo_addon_{usage.id}"
+                sent += 1
+        return sent
     _require_configured(settings)
     sent = 0
     with database.session() as session:

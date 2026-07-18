@@ -41,6 +41,7 @@ class Settings:
     api_key_pepper: str
     razorpay_key_id: str
     razorpay_key_secret: str
+    razorpay_demo_mode: bool
     razorpay_webhook_secret: str
     razorpay_plan_id: str
     razorpay_subscription_total_count: int
@@ -100,6 +101,7 @@ class Settings:
             ),
             razorpay_key_id=os.getenv("RAZORPAY_KEY_ID", "").strip(),
             razorpay_key_secret=os.getenv("RAZORPAY_KEY_SECRET", "").strip(),
+            razorpay_demo_mode=_boolean("RAZORPAY_DEMO_MODE", False),
             razorpay_webhook_secret=os.getenv(
                 "RAZORPAY_WEBHOOK_SECRET", ""
             ).strip(),
@@ -160,6 +162,8 @@ class Settings:
         if self.auth_mode == "supabase" and not self.supabase_url:
             raise RuntimeError("SUPABASE_URL is required when AUTH_MODE=supabase")
         if self.is_production:
+            if self.razorpay_demo_mode:
+                raise RuntimeError("RAZORPAY_DEMO_MODE is forbidden in production")
             if not self.database_url.startswith("postgresql"):
                 raise RuntimeError("Production requires a PostgreSQL DATABASE_URL")
             if "localhost" in self.redis_url or not self.redis_url.startswith(

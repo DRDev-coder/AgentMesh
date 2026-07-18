@@ -1,7 +1,10 @@
 import { runtimeConfig } from '../runtime-config'
 
 const configuredBaseUrl = runtimeConfig('VITE_API_URL', import.meta.env.VITE_API_URL)
-export const API_BASE_URL = (configuredBaseUrl || '/api/v1').replace(/\/$/, '')
+const normalizedBaseUrl = (configuredBaseUrl || '/api/v1').replace(/\/$/, '')
+export const API_BASE_URL = normalizedBaseUrl.endsWith('/api/v1')
+  ? normalizedBaseUrl
+  : `${normalizedBaseUrl}/api/v1`
 
 type TokenProvider = () => Promise<string | null>
 

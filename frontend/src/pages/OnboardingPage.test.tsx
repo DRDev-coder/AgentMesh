@@ -31,6 +31,7 @@ const workspace = {
 afterEach(() => {
   vi.restoreAllMocks()
   sessionStorage.clear()
+  localStorage.clear()
 })
 
 describe('organization onboarding', () => {
