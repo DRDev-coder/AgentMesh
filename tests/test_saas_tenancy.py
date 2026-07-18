@@ -356,7 +356,7 @@ def test_role_permission_matrix_covers_every_customer_role() -> None:
             "organization:read", "team:manage", "workspace:read", "workspace:manage",
             "knowledge:read", "knowledge:manage", "profile:read", "profile:manage",
             "decisions:read", "reviews:read", "reviews:manage", "usage:read",
-            "keys:manage", "webhooks:manage",
+            "keys:manage", "webhooks:manage", "playground:use",
         },
         "developer": {
             "organization:read", "workspace:read", "knowledge:read", "profile:read",
