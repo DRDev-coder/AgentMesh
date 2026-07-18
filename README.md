@@ -34,7 +34,7 @@ Supabase: PostgreSQL + pgvector, Auth, private object storage, backups
 Razorpay: Subscriptions, usage add-ons, hosted authorization, signed webhooks
 ```
 
-The student staging deployment uses Azure Static Web Apps Free plus Azure Container Apps Consumption scaled to zero. Its initial demo revision uses ephemeral SQLite/local storage and eager tasks to avoid paid Azure database, Redis, registry, and logging resources; see `infra/azure/README.md` for the production gap.
+The student staging deployment runs both frontend and API on Azure Container Apps Consumption scaled to zero. Its initial demo revision uses ephemeral SQLite/local storage and eager tasks to avoid paid Azure database, Redis, registry, and logging resources; see `infra/azure/README.md` for the production gap.
 
 Interactive decisions remain synchronous inside the modular monolith. Celery handles document ingestion, email, outbound webhooks, retention, source deletion, and Razorpay add-on delivery.
 

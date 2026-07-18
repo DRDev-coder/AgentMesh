@@ -1,4 +1,6 @@
-const configuredBaseUrl = import.meta.env.VITE_API_URL?.trim()
+import { runtimeConfig } from '../runtime-config'
+
+const configuredBaseUrl = runtimeConfig('VITE_API_URL', import.meta.env.VITE_API_URL)
 export const API_BASE_URL = (configuredBaseUrl || '/api/v1').replace(/\/$/, '')
 
 type TokenProvider = () => Promise<string | null>

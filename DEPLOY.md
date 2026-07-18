@@ -4,7 +4,7 @@ The supported production topology is a static frontend, the FastAPI API with sep
 
 ## Student Azure staging
 
-The budget deployment uses Azure Static Web Apps Free, a public GHCR image, and Azure Container Apps Consumption with zero minimum replicas, one maximum replica, and no Log Analytics workspace. This keeps low-traffic Azure usage inside the platform free allowances and avoids the recurring Azure Container Registry charge.
+The budget deployment uses public GHCR images and Azure Container Apps Consumption with zero minimum replicas, one maximum replica, and no Log Analytics workspace. Both frontend and API run as scale-to-zero Container Apps because the student subscription's allowed-location policy has no overlap with Azure Static Web Apps regions. This keeps low-traffic Azure usage inside the platform free allowances and avoids the recurring Azure Container Registry charge.
 
 The first demo revision may use `APP_ENV=development`, eager tasks, SQLite, and local object storage so the UI/API can be reviewed before paid infrastructure is approved. That revision is ephemeral: scale-down or redeployment can erase application data and documents. It is not a production topology.
 

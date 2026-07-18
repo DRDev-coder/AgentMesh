@@ -51,6 +51,7 @@ typechain-types/
 .env.*
 *.env
 !.env.example
+!frontend/.env.test
 infra/azure/*.generated.yaml
 infra/azure/*.generated.json
 

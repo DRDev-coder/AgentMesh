@@ -1,13 +1,17 @@
 import React from 'react'
 import { ExternalLink } from 'lucide-react'
 import { humanize } from '../decision'
+import { runtimeConfig } from '../runtime-config'
 import { SectionHeader, StatusIndicator } from './ui'
 
 export default function BlockchainProof({ audit }) {
   const status = audit?.status || 'NOT_REPORTED'
   const transactionHash = audit?.transaction_hash
   const explorerBase = audit?.explorer_url?.replace(/\/$/, '')
-    || import.meta.env.VITE_BLOCK_EXPLORER_TX_URL?.replace(/\/$/, '')
+    || runtimeConfig(
+      'VITE_BLOCK_EXPLORER_TX_URL',
+      import.meta.env.VITE_BLOCK_EXPLORER_TX_URL,
+    )?.replace(/\/$/, '')
 
   return (
     <section className="trace-section audit-section" aria-labelledby="audit-heading">

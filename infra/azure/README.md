@@ -2,8 +2,7 @@
 
 The low-cost staging topology uses:
 
-- Azure Static Web Apps Free for `frontend/dist`;
-- Azure Container Apps Consumption for the API, with `minReplicas: 0` and `maxReplicas: 1`;
+- Azure Container Apps Consumption for the frontend and API, each with `minReplicas: 0` and `maxReplicas: 1`;
 - public GitHub Container Registry for the API image;
 - no Azure Container Registry and no Log Analytics workspace.
 
@@ -11,6 +10,8 @@ The current student staging deployment is intentionally a demo topology. With `A
 
 Production requires external PostgreSQL with a restricted non-superuser application role, durable private object storage, managed Redis with `noeviction`, separate worker/scheduler processes, malware scanning, complete Razorpay settings, and backups. These services are deliberately excluded from the student deployment until their recurring cost is approved.
 
-The committed container image is published by `.github/workflows/publish-container.yml` as `ghcr.io/drdev-coder/agentmesh-api:staging`. GitHub Container Registry packages are private on first publication; make this package public before creating the Container App so Azure can pull it anonymously.
+The committed images are published by `.github/workflows/publish-container.yml` as `ghcr.io/drdev-coder/agentmesh-api:staging` and `ghcr.io/drdev-coder/agentmesh-web:staging`. The frontend image receives its public API, Supabase, and Turnstile settings at container startup through `runtime-config.js`.
+
+Azure Static Web Apps cannot be used by this student subscription: its allowed-location policy and the service's available regions have no overlap. Hosting both images on scale-to-zero Container Apps is the no-fixed-cost fallback.
 
 Local secret-bearing deployment manifests must be named `*.generated.yaml` or `*.generated.json`; these names are ignored by Git.

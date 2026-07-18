@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { ArrowRight, CheckCircle2 } from 'lucide-react'
 import { useAuth } from './AuthProvider'
 import { MeshMark } from '../components/AppShell'
+import { runtimeConfig } from '../runtime-config'
 
 declare global {
   interface Window {
@@ -21,7 +22,10 @@ declare global {
   }
 }
 
-const captchaSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY?.trim()
+const captchaSiteKey = runtimeConfig(
+  'VITE_TURNSTILE_SITE_KEY',
+  import.meta.env.VITE_TURNSTILE_SITE_KEY,
+)
 
 function SignupCaptcha({ onToken }: { onToken: (token: string | null) => void }) {
   const container = React.useRef<HTMLDivElement>(null)

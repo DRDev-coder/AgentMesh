@@ -1,8 +1,10 @@
-const configuredBaseUrl = import.meta.env.VITE_API_URL?.trim()
+import { runtimeConfig } from './runtime-config'
+
+const configuredBaseUrl = runtimeConfig('VITE_API_URL', import.meta.env.VITE_API_URL)
 
 export const API_BASE_URL = (configuredBaseUrl || '/api/v1').replace(/\/$/, '')
 
-const configuredTimeout = Number(import.meta.env.VITE_API_TIMEOUT_MS)
+const configuredTimeout = Number(runtimeConfig('VITE_API_TIMEOUT_MS', import.meta.env.VITE_API_TIMEOUT_MS))
 export const DEFAULT_TIMEOUT_MS = Number.isFinite(configuredTimeout) && configuredTimeout > 0
   ? configuredTimeout
   : 90_000
