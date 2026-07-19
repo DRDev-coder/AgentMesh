@@ -1,0 +1,1634 @@
+{
+  "metadata": {
+    "evaluation_date": "2026-07-19",
+    "git_commit": "46681de",
+    "company_count": 10,
+    "model_mode_requested": "deterministic",
+    "method": "Paraphrased test knowledge derived from official public support pages. These fixtures are for AgentMesh evaluation and are not endorsed by the named companies."
+  },
+  "summary": {
+    "checks": 50,
+    "passed": 50,
+    "failed": 0,
+    "pass_rate": 1.0
+  },
+  "companies": [
+    {
+      "company_id": "github",
+      "company_name": "GitHub",
+      "organization_id": "d9205b93-9c7e-45eb-9dfc-60c3d30d9e25",
+      "workspace_id": "66b2efba-4743-4ec0-bdb9-1152ec2d5698",
+      "uploads": [
+        {
+          "document_id": "c2160ea0-b994-4e8f-bc80-3ab563612178",
+          "document_name": "Impact of plan changes on billing",
+          "filename": "github-plan-billing.txt",
+          "source_url": "https://docs.github.com/en/billing/concepts/impact-of-plan-changes",
+          "uploaded_text": "Paid GitHub plan cancellations and downgrades take effect at the end of the current billing cycle, without proration. Paid access continues until that cycle ends. Plan upgrades take effect immediately and the upgrade charge is prorated. Adding paid seats is also immediate and prorated, while removing seats affects the next billing cycle. GitHub bills personal, organization, and enterprise accounts separately.",
+          "upload_status": "READY_FOR_REVIEW",
+          "version": {
+            "status": "READY_FOR_REVIEW",
+            "extraction_error": null,
+            "page_count": 1,
+            "chunk_count": 1
+          },
+          "background_job": {
+            "status": "COMPLETED",
+            "attempts": 1,
+            "error": null
+          },
+          "preview": {
+            "document_id": "c2160ea0-b994-4e8f-bc80-3ab563612178",
+            "document_version_id": "9e1f715d-8682-44e6-ac3c-77779cbbc541",
+            "version": 1,
+            "chunks": [
+              {
+                "chunk_index": 0,
+                "page_number": null,
+                "text": "Paid GitHub plan cancellations and downgrades take effect at the end of the current billing cycle, without proration. Paid access continues until that cycle ends. Plan upgrades take effect immediately and the upgrade charge is prorated. Adding paid seats is also immediate and prorated, while removing seats affects the next billing cycle. GitHub bills personal, organization, and enterprise accounts separately."
+              }
+            ]
+          }
+        }
+      ],
+      "release": {
+        "http_status": 201,
+        "id": "e5a89a6a-aa97-4f41-9d87-a8f382863465",
+        "version": 1,
+        "document_version_ids": [
+          "9e1f715d-8682-44e6-ac3c-77779cbbc541"
+        ]
+      },
+      "cases": [
+        {
+          "id": "github-grounded-1",
+          "type": "grounded",
+          "query": "When does a paid GitHub plan cancellation take effect?",
+          "expected_terms": [
+            "end",
+            "billing cycle"
+          ],
+          "playground": {
+            "http_status": 200,
+            "decision_id": "06874026-690a-4b32-ba5b-23b1ed8f2671",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [c2160ea0-b994-4e8f-bc80-3ab563612178] Paid GitHub plan cancellations and downgrades take effect at the end of the current billing cycle, without proration. Paid access continues until that cycle ends. Plan upgrades take effect immediately and the upgrade charge is prorated. Adding paid seats is also immediate and prorated, while removing seats affects the next billing cycle. GitHub bills personal, organization, and enterprise accounts separately.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "c2160ea0-b994-4e8f-bc80-3ab563612178",
+                "chunk_id": "4563d9fc-ea1c-4ff5-940e-201b8671499b",
+                "text": "Paid GitHub plan cancellations and downgrades take effect at the end of the current billing cycle, without proration. Paid access continues until that cycle ends. Plan upgrades take effect immediately and the upgrade charge is prorated. Adding paid seats is also immediate and prorated, while removing seats affects the next billing cycle. GitHub bills personal, organization, and enterprise accounts separately.",
+                "metadata": {
+                  "filename": "github-plan-billing.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.786
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": {
+            "http_status": 200,
+            "decision_id": "bb04b2ea-d61d-4e11-806a-e83764525990",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [c2160ea0-b994-4e8f-bc80-3ab563612178] Paid GitHub plan cancellations and downgrades take effect at the end of the current billing cycle, without proration. Paid access continues until that cycle ends. Plan upgrades take effect immediately and the upgrade charge is prorated. Adding paid seats is also immediate and prorated, while removing seats affects the next billing cycle. GitHub bills personal, organization, and enterprise accounts separately.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "c2160ea0-b994-4e8f-bc80-3ab563612178",
+                "chunk_id": "4563d9fc-ea1c-4ff5-940e-201b8671499b",
+                "text": "Paid GitHub plan cancellations and downgrades take effect at the end of the current billing cycle, without proration. Paid access continues until that cycle ends. Plan upgrades take effect immediately and the upgrade charge is prorated. Adding paid seats is also immediate and prorated, while removing seats affects the next billing cycle. GitHub bills personal, organization, and enterprise accounts separately.",
+                "metadata": {
+                  "filename": "github-plan-billing.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.786
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          }
+        },
+        {
+          "id": "github-grounded-2",
+          "type": "grounded",
+          "query": "Are GitHub plan upgrades prorated?",
+          "expected_terms": [
+            "immediately",
+            "prorated"
+          ],
+          "playground": {
+            "http_status": 200,
+            "decision_id": "5e1896ff-ac6f-4254-bf1b-a723b7715c4a",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [c2160ea0-b994-4e8f-bc80-3ab563612178] Paid GitHub plan cancellations and downgrades take effect at the end of the current billing cycle, without proration. Paid access continues until that cycle ends. Plan upgrades take effect immediately and the upgrade charge is prorated. Adding paid seats is also immediate and prorated, while removing seats affects the next billing cycle. GitHub bills personal, organization, and enterprise accounts separately.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "c2160ea0-b994-4e8f-bc80-3ab563612178",
+                "chunk_id": "4563d9fc-ea1c-4ff5-940e-201b8671499b",
+                "text": "Paid GitHub plan cancellations and downgrades take effect at the end of the current billing cycle, without proration. Paid access continues until that cycle ends. Plan upgrades take effect immediately and the upgrade charge is prorated. Adding paid seats is also immediate and prorated, while removing seats affects the next billing cycle. GitHub bills personal, organization, and enterprise accounts separately.",
+                "metadata": {
+                  "filename": "github-plan-billing.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.7426
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": null
+        },
+        {
+          "id": "github-isolation",
+          "type": "isolation",
+          "query": "How do I coordinate the return of an item left on a shuttle?",
+          "playground": {
+            "http_status": 200,
+            "decision_id": "d059e96e-3e06-4b28-9cc1-7ba69cf903ec",
+            "decision_state": "NEEDS_CLARIFICATION",
+            "answer": "I cannot safely approve an answer because the approved policy evidence is missing or does not support every material claim.",
+            "decision_reason": "One or more material draft claims are unsupported by retrieved policy evidence.",
+            "citations": [],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": false,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": null
+        }
+      ]
+    },
+    {
+      "company_id": "spotify",
+      "company_name": "Spotify",
+      "organization_id": "580e869e-beec-460b-971d-4664e0126c96",
+      "workspace_id": "1af54152-fae7-4bcd-a4f4-63910de691cc",
+      "uploads": [
+        {
+          "document_id": "2c1a721c-b325-495a-9273-22ed81ef3acd",
+          "document_name": "How to cancel Premium",
+          "filename": "spotify-cancel-premium.txt",
+          "source_url": "https://support.spotify.com/article/cancel-premium/",
+          "uploaded_text": "To cancel Spotify Premium, open the account page, go to Manage your plan, and select Cancel subscription. Premium stays active until the next billing date and the account then changes to Spotify Free. A zero-priced free trial changes to Free immediately when canceled and cannot be reactivated. After moving to Free, the user keeps playlists and saved music and can listen with ads. A plan purchased through a partner must be canceled through that partner.",
+          "upload_status": "READY_FOR_REVIEW",
+          "version": {
+            "status": "READY_FOR_REVIEW",
+            "extraction_error": null,
+            "page_count": 1,
+            "chunk_count": 1
+          },
+          "background_job": {
+            "status": "COMPLETED",
+            "attempts": 1,
+            "error": null
+          },
+          "preview": {
+            "document_id": "2c1a721c-b325-495a-9273-22ed81ef3acd",
+            "document_version_id": "943c50a2-7aa4-4fa6-888f-068ac7e983f2",
+            "version": 1,
+            "chunks": [
+              {
+                "chunk_index": 0,
+                "page_number": null,
+                "text": "To cancel Spotify Premium, open the account page, go to Manage your plan, and select Cancel subscription. Premium stays active until the next billing date and the account then changes to Spotify Free. A zero-priced free trial changes to Free immediately when canceled and cannot be reactivated. After moving to Free, the user keeps playlists and saved music and can listen with ads. A plan purchased through a partner must be canceled through that partner."
+              }
+            ]
+          }
+        }
+      ],
+      "release": {
+        "http_status": 201,
+        "id": "cec3929c-34ff-46ea-b98f-1facb69fe909",
+        "version": 1,
+        "document_version_ids": [
+          "943c50a2-7aa4-4fa6-888f-068ac7e983f2"
+        ]
+      },
+      "cases": [
+        {
+          "id": "spotify-grounded-1",
+          "type": "grounded",
+          "query": "How do I cancel Spotify Premium?",
+          "expected_terms": [
+            "manage your plan",
+            "cancel subscription"
+          ],
+          "playground": {
+            "http_status": 200,
+            "decision_id": "f9534a5f-df29-4178-abaa-ac2102b07a42",
+            "decision_state": "APPROVED_WITH_REWRITE",
+            "answer": "I can help make the policy clearer.\n\nAccording to the approved policy:\n- [2c1a721c-b325-495a-9273-22ed81ef3acd] To cancel Spotify Premium, open the account page, go to Manage your plan, and select Cancel subscription. Premium stays active until the next billing date and the account then changes to Spotify Free. A zero-priced free trial changes to Free immediately when canceled and cannot be reactivated. After moving to Free, the user keeps playlists and saved music and can listen with ads. A plan purchased through a partner must be canceled through that partner.",
+            "decision_reason": "The answer is safe and supported; presentation was adapted to the customer's tone.",
+            "citations": [
+              {
+                "document_id": "2c1a721c-b325-495a-9273-22ed81ef3acd",
+                "chunk_id": "2fc5a693-e0f9-4139-9a42-3742b6a80a16",
+                "text": "To cancel Spotify Premium, open the account page, go to Manage your plan, and select Cancel subscription. Premium stays active until the next billing date and the account then changes to Spotify Free. A zero-priced free trial changes to Free immediately when canceled and cannot be reactivated. After moving to Free, the user keeps playlists and saved music and can listen with ads. A plan purchased through a partner must be canceled through that partner.",
+                "metadata": {
+                  "filename": "spotify-cancel-premium.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.7369
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": {
+            "http_status": 200,
+            "decision_id": "73dab302-4103-4a5f-9119-1fa4cd8e710e",
+            "decision_state": "APPROVED_WITH_REWRITE",
+            "answer": "I can help make the policy clearer.\n\nAccording to the approved policy:\n- [2c1a721c-b325-495a-9273-22ed81ef3acd] To cancel Spotify Premium, open the account page, go to Manage your plan, and select Cancel subscription. Premium stays active until the next billing date and the account then changes to Spotify Free. A zero-priced free trial changes to Free immediately when canceled and cannot be reactivated. After moving to Free, the user keeps playlists and saved music and can listen with ads. A plan purchased through a partner must be canceled through that partner.",
+            "decision_reason": "The answer is safe and supported; presentation was adapted to the customer's tone.",
+            "citations": [
+              {
+                "document_id": "2c1a721c-b325-495a-9273-22ed81ef3acd",
+                "chunk_id": "2fc5a693-e0f9-4139-9a42-3742b6a80a16",
+                "text": "To cancel Spotify Premium, open the account page, go to Manage your plan, and select Cancel subscription. Premium stays active until the next billing date and the account then changes to Spotify Free. A zero-priced free trial changes to Free immediately when canceled and cannot be reactivated. After moving to Free, the user keeps playlists and saved music and can listen with ads. A plan purchased through a partner must be canceled through that partner.",
+                "metadata": {
+                  "filename": "spotify-cancel-premium.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.7369
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          }
+        },
+        {
+          "id": "spotify-grounded-2",
+          "type": "grounded",
+          "query": "Will I keep my playlists after Premium ends?",
+          "expected_terms": [
+            "playlists",
+            "saved music"
+          ],
+          "playground": {
+            "http_status": 200,
+            "decision_id": "c148efa1-2818-4b6b-b4f9-bdbf378ee31d",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [2c1a721c-b325-495a-9273-22ed81ef3acd] To cancel Spotify Premium, open the account page, go to Manage your plan, and select Cancel subscription. Premium stays active until the next billing date and the account then changes to Spotify Free. A zero-priced free trial changes to Free immediately when canceled and cannot be reactivated. After moving to Free, the user keeps playlists and saved music and can listen with ads. A plan purchased through a partner must be canceled through that partner.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "2c1a721c-b325-495a-9273-22ed81ef3acd",
+                "chunk_id": "2fc5a693-e0f9-4139-9a42-3742b6a80a16",
+                "text": "To cancel Spotify Premium, open the account page, go to Manage your plan, and select Cancel subscription. Premium stays active until the next billing date and the account then changes to Spotify Free. A zero-priced free trial changes to Free immediately when canceled and cannot be reactivated. After moving to Free, the user keeps playlists and saved music and can listen with ads. A plan purchased through a partner must be canceled through that partner.",
+                "metadata": {
+                  "filename": "spotify-cancel-premium.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.4024
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": null
+        },
+        {
+          "id": "spotify-isolation",
+          "type": "isolation",
+          "query": "Can a merchant reverse an order refund after it is issued?",
+          "playground": {
+            "http_status": 200,
+            "decision_id": "b60bb0b2-9def-4b56-aee0-2d8ef287c5a5",
+            "decision_state": "NEEDS_CLARIFICATION",
+            "answer": "I cannot safely approve an answer because the approved policy evidence is missing or does not support every material claim.",
+            "decision_reason": "One or more material draft claims are unsupported by retrieved policy evidence.",
+            "citations": [],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": false,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": null
+        }
+      ]
+    },
+    {
+      "company_id": "netflix",
+      "company_name": "Netflix",
+      "organization_id": "1594a24d-1a0c-4aef-8097-ab68c1cdee9f",
+      "workspace_id": "58601a54-b8ea-4264-aca6-17900f92b5a6",
+      "uploads": [
+        {
+          "document_id": "47b07854-66ee-4c9f-ab9f-dc07e203f6c2",
+          "document_name": "Charged after canceling Netflix",
+          "filename": "netflix-charged-after-canceling.txt",
+          "source_url": "https://help.netflix.com/en/node/124418",
+          "uploaded_text": "To finish a Netflix cancellation, use the cancel-plan page and select Finish Cancellation. The account closes at the end of the current billing cycle and should not be charged again. If a charge appears after cancellation, the account may have been accidentally restarted by someone with access. Cancel again, change the password, and select the option to sign out of all devices so another person cannot restart the account.",
+          "upload_status": "READY_FOR_REVIEW",
+          "version": {
+            "status": "READY_FOR_REVIEW",
+            "extraction_error": null,
+            "page_count": 1,
+            "chunk_count": 1
+          },
+          "background_job": {
+            "status": "COMPLETED",
+            "attempts": 1,
+            "error": null
+          },
+          "preview": {
+            "document_id": "47b07854-66ee-4c9f-ab9f-dc07e203f6c2",
+            "document_version_id": "d4891ada-05f0-49e3-8c98-fa363a28c4af",
+            "version": 1,
+            "chunks": [
+              {
+                "chunk_index": 0,
+                "page_number": null,
+                "text": "To finish a Netflix cancellation, use the cancel-plan page and select Finish Cancellation. The account closes at the end of the current billing cycle and should not be charged again. If a charge appears after cancellation, the account may have been accidentally restarted by someone with access. Cancel again, change the password, and select the option to sign out of all devices so another person cannot restart the account."
+              }
+            ]
+          }
+        }
+      ],
+      "release": {
+        "http_status": 201,
+        "id": "608f4e95-7db3-4e96-be47-24d8d388555e",
+        "version": 1,
+        "document_version_ids": [
+          "d4891ada-05f0-49e3-8c98-fa363a28c4af"
+        ]
+      },
+      "cases": [
+        {
+          "id": "netflix-grounded-1",
+          "type": "grounded",
+          "query": "When does my Netflix account close after cancellation?",
+          "expected_terms": [
+            "end",
+            "billing cycle"
+          ],
+          "playground": {
+            "http_status": 200,
+            "decision_id": "f5f26d9e-fd52-478f-bd9b-ce9bd2b60c68",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [47b07854-66ee-4c9f-ab9f-dc07e203f6c2] To finish a Netflix cancellation, use the cancel-plan page and select Finish Cancellation. The account closes at the end of the current billing cycle and should not be charged again. If a charge appears after cancellation, the account may have been accidentally restarted by someone with access. Cancel again, change the password, and select the option to sign out of all devices so another person cannot restart the account.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "47b07854-66ee-4c9f-ab9f-dc07e203f6c2",
+                "chunk_id": "ea6d45e2-f1bd-488b-9bdd-ffd39ccd7e8c",
+                "text": "To finish a Netflix cancellation, use the cancel-plan page and select Finish Cancellation. The account closes at the end of the current billing cycle and should not be charged again. If a charge appears after cancellation, the account may have been accidentally restarted by someone with access. Cancel again, change the password, and select the option to sign out of all devices so another person cannot restart the account.",
+                "metadata": {
+                  "filename": "netflix-charged-after-canceling.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.5802
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": {
+            "http_status": 200,
+            "decision_id": "b4e7be5e-36b6-4882-bb8b-6c8e8ed57ad1",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [47b07854-66ee-4c9f-ab9f-dc07e203f6c2] To finish a Netflix cancellation, use the cancel-plan page and select Finish Cancellation. The account closes at the end of the current billing cycle and should not be charged again. If a charge appears after cancellation, the account may have been accidentally restarted by someone with access. Cancel again, change the password, and select the option to sign out of all devices so another person cannot restart the account.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "47b07854-66ee-4c9f-ab9f-dc07e203f6c2",
+                "chunk_id": "ea6d45e2-f1bd-488b-9bdd-ffd39ccd7e8c",
+                "text": "To finish a Netflix cancellation, use the cancel-plan page and select Finish Cancellation. The account closes at the end of the current billing cycle and should not be charged again. If a charge appears after cancellation, the account may have been accidentally restarted by someone with access. Cancel again, change the password, and select the option to sign out of all devices so another person cannot restart the account.",
+                "metadata": {
+                  "filename": "netflix-charged-after-canceling.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.5802
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          }
+        },
+        {
+          "id": "netflix-grounded-2",
+          "type": "grounded",
+          "query": "Why might I be charged after canceling Netflix and what should I do?",
+          "expected_terms": [
+            "restarted",
+            "password"
+          ],
+          "playground": {
+            "http_status": 200,
+            "decision_id": "a7e2f21a-fa95-4663-8a85-41af1ccb6031",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [47b07854-66ee-4c9f-ab9f-dc07e203f6c2] To finish a Netflix cancellation, use the cancel-plan page and select Finish Cancellation. The account closes at the end of the current billing cycle and should not be charged again. If a charge appears after cancellation, the account may have been accidentally restarted by someone with access. Cancel again, change the password, and select the option to sign out of all devices so another person cannot restart the account.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "47b07854-66ee-4c9f-ab9f-dc07e203f6c2",
+                "chunk_id": "ea6d45e2-f1bd-488b-9bdd-ffd39ccd7e8c",
+                "text": "To finish a Netflix cancellation, use the cancel-plan page and select Finish Cancellation. The account closes at the end of the current billing cycle and should not be charged again. If a charge appears after cancellation, the account may have been accidentally restarted by someone with access. Cancel again, change the password, and select the option to sign out of all devices so another person cannot restart the account.",
+                "metadata": {
+                  "filename": "netflix-charged-after-canceling.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.4847
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": null
+        },
+        {
+          "id": "netflix-isolation",
+          "type": "isolation",
+          "query": "Is an initial marketplace app purchase refundable within 30 days?",
+          "playground": {
+            "http_status": 200,
+            "decision_id": "9d77d9ff-e4a2-4460-b9bd-ffba0b241b2b",
+            "decision_state": "NEEDS_CLARIFICATION",
+            "answer": "I cannot safely approve an answer because the approved policy evidence is missing or does not support every material claim.",
+            "decision_reason": "One or more material draft claims are unsupported by retrieved policy evidence.",
+            "citations": [],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": false,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": null
+        }
+      ]
+    },
+    {
+      "company_id": "uber",
+      "company_name": "Uber",
+      "organization_id": "80ece572-0176-45b3-9393-e28e3f5c56e1",
+      "workspace_id": "ccff8a80-b54d-461e-818c-128255015f1f",
+      "uploads": [
+        {
+          "document_id": "83b34930-7c32-437e-a738-e463f19d04f3",
+          "document_name": "Lost items on shuttle trips",
+          "filename": "uber-shuttle-lost-items.txt",
+          "source_url": "https://help.uber.com/riders/article/lost-items?nodeId=c4946b77-835c-49cb-b85c-5a4611a1da17",
+          "uploaded_text": "For an item lost on an Uber shuttle trip, contact support and provide the trip details plus a brief description of the lost item. Uber will reach out to the driver and try to coordinate the item's return. The customer needs to sign in to get help with the lost-item report.",
+          "upload_status": "READY_FOR_REVIEW",
+          "version": {
+            "status": "READY_FOR_REVIEW",
+            "extraction_error": null,
+            "page_count": 1,
+            "chunk_count": 1
+          },
+          "background_job": {
+            "status": "COMPLETED",
+            "attempts": 1,
+            "error": null
+          },
+          "preview": {
+            "document_id": "83b34930-7c32-437e-a738-e463f19d04f3",
+            "document_version_id": "b1763cd7-9c24-49e7-ba4a-f2387acd3a2d",
+            "version": 1,
+            "chunks": [
+              {
+                "chunk_index": 0,
+                "page_number": null,
+                "text": "For an item lost on an Uber shuttle trip, contact support and provide the trip details plus a brief description of the lost item. Uber will reach out to the driver and try to coordinate the item's return. The customer needs to sign in to get help with the lost-item report."
+              }
+            ]
+          }
+        }
+      ],
+      "release": {
+        "http_status": 201,
+        "id": "a8775ad3-962e-443e-80a0-365234a256e7",
+        "version": 1,
+        "document_version_ids": [
+          "b1763cd7-9c24-49e7-ba4a-f2387acd3a2d"
+        ]
+      },
+      "cases": [
+        {
+          "id": "uber-grounded-1",
+          "type": "grounded",
+          "query": "What details should I provide for an item lost on an Uber shuttle?",
+          "expected_terms": [
+            "trip",
+            "description"
+          ],
+          "playground": {
+            "http_status": 200,
+            "decision_id": "8085f439-9244-4e5f-a912-02852d41df28",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [83b34930-7c32-437e-a738-e463f19d04f3] For an item lost on an Uber shuttle trip, contact support and provide the trip details plus a brief description of the lost item. Uber will reach out to the driver and try to coordinate the item's return. The customer needs to sign in to get help with the lost-item report.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "83b34930-7c32-437e-a738-e463f19d04f3",
+                "chunk_id": "2d65591f-44ca-4b8e-9fd2-ad05d25dffe7",
+                "text": "For an item lost on an Uber shuttle trip, contact support and provide the trip details plus a brief description of the lost item. Uber will reach out to the driver and try to coordinate the item's return. The customer needs to sign in to get help with the lost-item report.",
+                "metadata": {
+                  "filename": "uber-shuttle-lost-items.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.8065
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": {
+            "http_status": 200,
+            "decision_id": "d873df3b-bbee-4121-9bb0-8bb915c69040",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [83b34930-7c32-437e-a738-e463f19d04f3] For an item lost on an Uber shuttle trip, contact support and provide the trip details plus a brief description of the lost item. Uber will reach out to the driver and try to coordinate the item's return. The customer needs to sign in to get help with the lost-item report.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "83b34930-7c32-437e-a738-e463f19d04f3",
+                "chunk_id": "2d65591f-44ca-4b8e-9fd2-ad05d25dffe7",
+                "text": "For an item lost on an Uber shuttle trip, contact support and provide the trip details plus a brief description of the lost item. Uber will reach out to the driver and try to coordinate the item's return. The customer needs to sign in to get help with the lost-item report.",
+                "metadata": {
+                  "filename": "uber-shuttle-lost-items.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.8065
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          }
+        },
+        {
+          "id": "uber-grounded-2",
+          "type": "grounded",
+          "query": "Will Uber contact the shuttle driver about my lost item?",
+          "expected_terms": [
+            "driver",
+            "return"
+          ],
+          "playground": {
+            "http_status": 200,
+            "decision_id": "020686a5-af3b-4e95-bca6-f6e420645cbe",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [83b34930-7c32-437e-a738-e463f19d04f3] For an item lost on an Uber shuttle trip, contact support and provide the trip details plus a brief description of the lost item. Uber will reach out to the driver and try to coordinate the item's return. The customer needs to sign in to get help with the lost-item report.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "83b34930-7c32-437e-a738-e463f19d04f3",
+                "chunk_id": "2d65591f-44ca-4b8e-9fd2-ad05d25dffe7",
+                "text": "For an item lost on an Uber shuttle trip, contact support and provide the trip details plus a brief description of the lost item. Uber will reach out to the driver and try to coordinate the item's return. The customer needs to sign in to get help with the lost-item report.",
+                "metadata": {
+                  "filename": "uber-shuttle-lost-items.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.7813
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": null
+        },
+        {
+          "id": "uber-isolation",
+          "type": "isolation",
+          "query": "Does downgrading a cloud storage plan leave me with 2 GB?",
+          "playground": {
+            "http_status": 200,
+            "decision_id": "d6e27418-cfb5-488e-a8ac-177240cacf83",
+            "decision_state": "NEEDS_CLARIFICATION",
+            "answer": "I cannot safely approve an answer because the approved policy evidence is missing or does not support every material claim.",
+            "decision_reason": "One or more material draft claims are unsupported by retrieved policy evidence.",
+            "citations": [],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": false,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": null
+        }
+      ]
+    },
+    {
+      "company_id": "airbnb",
+      "company_name": "Airbnb",
+      "organization_id": "7448c5dd-c933-463b-b092-c5b3ed4b95ab",
+      "workspace_id": "695039eb-7a12-49e3-9376-a05db930715c",
+      "uploads": [
+        {
+          "document_id": "01e67dc7-415d-4776-a676-ddc7cf9f7d5e",
+          "document_name": "Understanding home cancellation policies as a guest",
+          "filename": "airbnb-guest-cancellation.txt",
+          "source_url": "https://www.airbnb.com/help/article/4052",
+          "uploaded_text": "Cancellation terms for an Airbnb home reservation are set by the host and can vary by listing. The applicable terms appear on the listing, during checkout, and in the confirmation email. In Trips, a guest can start cancellation and review a detailed refund breakdown before confirming. Airbnb initiates an eligible refund as soon as the guest cancels, but the bank controls posting time. If the host cancels, the guest receives a full refund and help finding a similar place regardless of the listing policy.",
+          "upload_status": "READY_FOR_REVIEW",
+          "version": {
+            "status": "READY_FOR_REVIEW",
+            "extraction_error": null,
+            "page_count": 1,
+            "chunk_count": 1
+          },
+          "background_job": {
+            "status": "COMPLETED",
+            "attempts": 1,
+            "error": null
+          },
+          "preview": {
+            "document_id": "01e67dc7-415d-4776-a676-ddc7cf9f7d5e",
+            "document_version_id": "36fcf8bd-300a-4180-ae2b-e2ac38437e23",
+            "version": 1,
+            "chunks": [
+              {
+                "chunk_index": 0,
+                "page_number": null,
+                "text": "Cancellation terms for an Airbnb home reservation are set by the host and can vary by listing. The applicable terms appear on the listing, during checkout, and in the confirmation email. In Trips, a guest can start cancellation and review a detailed refund breakdown before confirming. Airbnb initiates an eligible refund as soon as the guest cancels, but the bank controls posting time. If the host cancels, the guest receives a full refund and help finding a similar place regardless of the listing policy."
+              }
+            ]
+          }
+        }
+      ],
+      "release": {
+        "http_status": 201,
+        "id": "e3ed1f13-0804-448f-99ee-69c0fee9484b",
+        "version": 1,
+        "document_version_ids": [
+          "36fcf8bd-300a-4180-ae2b-e2ac38437e23"
+        ]
+      },
+      "cases": [
+        {
+          "id": "airbnb-grounded-1",
+          "type": "grounded",
+          "query": "Can I see my Airbnb refund amount before I cancel?",
+          "expected_terms": [
+            "trips",
+            "before"
+          ],
+          "playground": {
+            "http_status": 200,
+            "decision_id": "fe3e3ff7-013c-46c4-8cc1-6b4abb05a0f9",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [01e67dc7-415d-4776-a676-ddc7cf9f7d5e] Cancellation terms for an Airbnb home reservation are set by the host and can vary by listing. The applicable terms appear on the listing, during checkout, and in the confirmation email. In Trips, a guest can start cancellation and review a detailed refund breakdown before confirming. Airbnb initiates an eligible refund as soon as the guest cancels, but the bank controls posting time. If the host cancels, the guest receives a full refund and help finding a similar place regardless of the listing policy.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "01e67dc7-415d-4776-a676-ddc7cf9f7d5e",
+                "chunk_id": "ef6a6fc4-7097-49e2-bfa6-e8298e67c29d",
+                "text": "Cancellation terms for an Airbnb home reservation are set by the host and can vary by listing. The applicable terms appear on the listing, during checkout, and in the confirmation email. In Trips, a guest can start cancellation and review a detailed refund breakdown before confirming. Airbnb initiates an eligible refund as soon as the guest cancels, but the bank controls posting time. If the host cancels, the guest receives a full refund and help finding a similar place regardless of the listing policy.",
+                "metadata": {
+                  "filename": "airbnb-guest-cancellation.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.4593
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": {
+            "http_status": 200,
+            "decision_id": "b068ddd6-8c75-4ca2-9938-faab056f2d4c",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [01e67dc7-415d-4776-a676-ddc7cf9f7d5e] Cancellation terms for an Airbnb home reservation are set by the host and can vary by listing. The applicable terms appear on the listing, during checkout, and in the confirmation email. In Trips, a guest can start cancellation and review a detailed refund breakdown before confirming. Airbnb initiates an eligible refund as soon as the guest cancels, but the bank controls posting time. If the host cancels, the guest receives a full refund and help finding a similar place regardless of the listing policy.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "01e67dc7-415d-4776-a676-ddc7cf9f7d5e",
+                "chunk_id": "ef6a6fc4-7097-49e2-bfa6-e8298e67c29d",
+                "text": "Cancellation terms for an Airbnb home reservation are set by the host and can vary by listing. The applicable terms appear on the listing, during checkout, and in the confirmation email. In Trips, a guest can start cancellation and review a detailed refund breakdown before confirming. Airbnb initiates an eligible refund as soon as the guest cancels, but the bank controls posting time. If the host cancels, the guest receives a full refund and help finding a similar place regardless of the listing policy.",
+                "metadata": {
+                  "filename": "airbnb-guest-cancellation.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.4593
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          }
+        },
+        {
+          "id": "airbnb-grounded-2",
+          "type": "grounded",
+          "query": "What refund do I get if my Airbnb host cancels?",
+          "expected_terms": [
+            "full refund",
+            "host"
+          ],
+          "playground": {
+            "http_status": 200,
+            "decision_id": "9bcc88a3-e404-4d3f-bf2f-be4f4431669c",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [01e67dc7-415d-4776-a676-ddc7cf9f7d5e] Cancellation terms for an Airbnb home reservation are set by the host and can vary by listing. The applicable terms appear on the listing, during checkout, and in the confirmation email. In Trips, a guest can start cancellation and review a detailed refund breakdown before confirming. Airbnb initiates an eligible refund as soon as the guest cancels, but the bank controls posting time. If the host cancels, the guest receives a full refund and help finding a similar place regardless of the listing policy.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "01e67dc7-415d-4776-a676-ddc7cf9f7d5e",
+                "chunk_id": "ef6a6fc4-7097-49e2-bfa6-e8298e67c29d",
+                "text": "Cancellation terms for an Airbnb home reservation are set by the host and can vary by listing. The applicable terms appear on the listing, during checkout, and in the confirmation email. In Trips, a guest can start cancellation and review a detailed refund breakdown before confirming. Airbnb initiates an eligible refund as soon as the guest cancels, but the bank controls posting time. If the host cancels, the guest receives a full refund and help finding a similar place regardless of the listing policy.",
+                "metadata": {
+                  "filename": "airbnb-guest-cancellation.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.7399
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": null
+        },
+        {
+          "id": "airbnb-isolation",
+          "type": "isolation",
+          "query": "Where is the button for canceling a video membership?",
+          "playground": {
+            "http_status": 200,
+            "decision_id": "0ad68ca3-db0a-4673-a263-490d3b085721",
+            "decision_state": "NEEDS_CLARIFICATION",
+            "answer": "I cannot safely approve an answer because the approved policy evidence is missing or does not support every material claim.",
+            "decision_reason": "One or more material draft claims are unsupported by retrieved policy evidence.",
+            "citations": [],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": false,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": null
+        }
+      ]
+    },
+    {
+      "company_id": "dropbox",
+      "company_name": "Dropbox",
+      "organization_id": "98643579-6b9b-49ac-af98-8ec921fa0ba7",
+      "workspace_id": "1817b33e-5a2b-4c1c-bb6d-1f9fb7e23e41",
+      "uploads": [
+        {
+          "document_id": "c83d72be-dedf-4cbd-8a58-4c557011984a",
+          "document_name": "Dropbox subscription refunds",
+          "filename": "dropbox-subscription-refunds.txt",
+          "source_url": "https://help.dropbox.com/plans/refund",
+          "uploaded_text": "In most cases, payments for Dropbox subscriptions, Dropbox Dash subscriptions, and team-member licenses are not refundable. Customers with a billing error should use their available support options; purchases made through a device storefront should be handled by that storefront. Customers in the EU, UK, or Turkey can request a refund for eligible Dropbox Plus, Family, Professional, or Essentials subscriptions if they cancel within 14 days of purchase. A direct-debit chargeback must be processed by the customer's bank.",
+          "upload_status": "READY_FOR_REVIEW",
+          "version": {
+            "status": "READY_FOR_REVIEW",
+            "extraction_error": null,
+            "page_count": 1,
+            "chunk_count": 1
+          },
+          "background_job": {
+            "status": "COMPLETED",
+            "attempts": 1,
+            "error": null
+          },
+          "preview": {
+            "document_id": "c83d72be-dedf-4cbd-8a58-4c557011984a",
+            "document_version_id": "cc440474-5baa-4513-8a1b-a83e6967e5ba",
+            "version": 1,
+            "chunks": [
+              {
+                "chunk_index": 0,
+                "page_number": null,
+                "text": "In most cases, payments for Dropbox subscriptions, Dropbox Dash subscriptions, and team-member licenses are not refundable. Customers with a billing error should use their available support options; purchases made through a device storefront should be handled by that storefront. Customers in the EU, UK, or Turkey can request a refund for eligible Dropbox Plus, Family, Professional, or Essentials subscriptions if they cancel within 14 days of purchase. A direct-debit chargeback must be processed by the customer's bank."
+              }
+            ]
+          }
+        }
+      ],
+      "release": {
+        "http_status": 201,
+        "id": "a8ce2d65-0b24-4da0-b0c7-6899daafd344",
+        "version": 1,
+        "document_version_ids": [
+          "cc440474-5baa-4513-8a1b-a83e6967e5ba"
+        ]
+      },
+      "cases": [
+        {
+          "id": "dropbox-grounded-1",
+          "type": "grounded",
+          "query": "Are Dropbox subscription payments normally refundable?",
+          "expected_terms": [
+            "not refundable"
+          ],
+          "playground": {
+            "http_status": 200,
+            "decision_id": "6a666806-1f32-43ab-810e-09c94e15a5b5",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [c83d72be-dedf-4cbd-8a58-4c557011984a] In most cases, payments for Dropbox subscriptions, Dropbox Dash subscriptions, and team-member licenses are not refundable. Customers with a billing error should use their available support options; purchases made through a device storefront should be handled by that storefront. Customers in the EU, UK, or Turkey can request a refund for eligible Dropbox Plus, Family, Professional, or Essentials subscriptions if they cancel within 14 days of purchase. A direct-debit chargeback must be processed by the customer's bank.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "c83d72be-dedf-4cbd-8a58-4c557011984a",
+                "chunk_id": "c8547ece-e6ab-43e0-a20c-028b81b81eb7",
+                "text": "In most cases, payments for Dropbox subscriptions, Dropbox Dash subscriptions, and team-member licenses are not refundable. Customers with a billing error should use their available support options; purchases made through a device storefront should be handled by that storefront. Customers in the EU, UK, or Turkey can request a refund for eligible Dropbox Plus, Family, Professional, or Essentials subscriptions if they cancel within 14 days of purchase. A direct-debit chargeback must be processed by the customer's bank.",
+                "metadata": {
+                  "filename": "dropbox-subscription-refunds.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.6014
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": {
+            "http_status": 200,
+            "decision_id": "c6142510-394e-4d93-9d47-7cc55584b6b5",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [c83d72be-dedf-4cbd-8a58-4c557011984a] In most cases, payments for Dropbox subscriptions, Dropbox Dash subscriptions, and team-member licenses are not refundable. Customers with a billing error should use their available support options; purchases made through a device storefront should be handled by that storefront. Customers in the EU, UK, or Turkey can request a refund for eligible Dropbox Plus, Family, Professional, or Essentials subscriptions if they cancel within 14 days of purchase. A direct-debit chargeback must be processed by the customer's bank.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "c83d72be-dedf-4cbd-8a58-4c557011984a",
+                "chunk_id": "c8547ece-e6ab-43e0-a20c-028b81b81eb7",
+                "text": "In most cases, payments for Dropbox subscriptions, Dropbox Dash subscriptions, and team-member licenses are not refundable. Customers with a billing error should use their available support options; purchases made through a device storefront should be handled by that storefront. Customers in the EU, UK, or Turkey can request a refund for eligible Dropbox Plus, Family, Professional, or Essentials subscriptions if they cancel within 14 days of purchase. A direct-debit chargeback must be processed by the customer's bank.",
+                "metadata": {
+                  "filename": "dropbox-subscription-refunds.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.6014
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          }
+        },
+        {
+          "id": "dropbox-grounded-2",
+          "type": "grounded",
+          "query": "Can a UK customer get a Dropbox refund within 14 days?",
+          "expected_terms": [
+            "uk",
+            "14 days"
+          ],
+          "playground": {
+            "http_status": 200,
+            "decision_id": "d5ca5ae1-76c6-493f-b2fa-dbbab1309473",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [c83d72be-dedf-4cbd-8a58-4c557011984a] In most cases, payments for Dropbox subscriptions, Dropbox Dash subscriptions, and team-member licenses are not refundable. Customers with a billing error should use their available support options; purchases made through a device storefront should be handled by that storefront. Customers in the EU, UK, or Turkey can request a refund for eligible Dropbox Plus, Family, Professional, or Essentials subscriptions if they cancel within 14 days of purchase. A direct-debit chargeback must be processed by the customer's bank.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "c83d72be-dedf-4cbd-8a58-4c557011984a",
+                "chunk_id": "c8547ece-e6ab-43e0-a20c-028b81b81eb7",
+                "text": "In most cases, payments for Dropbox subscriptions, Dropbox Dash subscriptions, and team-member licenses are not refundable. Customers with a billing error should use their available support options; purchases made through a device storefront should be handled by that storefront. Customers in the EU, UK, or Turkey can request a refund for eligible Dropbox Plus, Family, Professional, or Essentials subscriptions if they cancel within 14 days of purchase. A direct-debit chargeback must be processed by the customer's bank.",
+                "metadata": {
+                  "filename": "dropbox-subscription-refunds.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.7718
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": null
+        },
+        {
+          "id": "dropbox-isolation",
+          "type": "isolation",
+          "query": "Who sets the refund terms for a home reservation?",
+          "playground": {
+            "http_status": 200,
+            "decision_id": "c7d2f554-a641-4ad5-9451-e0e2052aa3d6",
+            "decision_state": "NEEDS_CLARIFICATION",
+            "answer": "I cannot safely approve an answer because the approved policy evidence is missing or does not support every material claim.",
+            "decision_reason": "One or more material draft claims are unsupported by retrieved policy evidence.",
+            "citations": [],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": false,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": null
+        }
+      ]
+    },
+    {
+      "company_id": "atlassian",
+      "company_name": "Atlassian",
+      "organization_id": "31e20b1f-222d-4536-ab19-b15db923bd00",
+      "workspace_id": "6baf82f0-b14a-4bf6-a12f-fbcb40618e44",
+      "uploads": [
+        {
+          "document_id": "2e5bb455-3291-4e41-bd0b-73ef46b34bd6",
+          "document_name": "Request an Atlassian refund",
+          "filename": "atlassian-request-refund.txt",
+          "source_url": "https://support.atlassian.com/subscriptions-and-billing/docs/request-a-refund/",
+          "uploaded_text": "An initial Atlassian app purchase can be refunded when the request is made within 30 days of purchase. For a monthly cloud subscription, a refund is available only during the first paid month after the trial. A new annual cloud subscription can be refunded only within 30 days of its first purchase. Cloud renewals and upgrades cannot be refunded. Marketplace apps follow the same conditions, although a vendor can approve an exception outside the standard period.",
+          "upload_status": "READY_FOR_REVIEW",
+          "version": {
+            "status": "READY_FOR_REVIEW",
+            "extraction_error": null,
+            "page_count": 1,
+            "chunk_count": 1
+          },
+          "background_job": {
+            "status": "COMPLETED",
+            "attempts": 1,
+            "error": null
+          },
+          "preview": {
+            "document_id": "2e5bb455-3291-4e41-bd0b-73ef46b34bd6",
+            "document_version_id": "68dab157-547c-431a-a881-3a1bb6d2196e",
+            "version": 1,
+            "chunks": [
+              {
+                "chunk_index": 0,
+                "page_number": null,
+                "text": "An initial Atlassian app purchase can be refunded when the request is made within 30 days of purchase. For a monthly cloud subscription, a refund is available only during the first paid month after the trial. A new annual cloud subscription can be refunded only within 30 days of its first purchase. Cloud renewals and upgrades cannot be refunded. Marketplace apps follow the same conditions, although a vendor can approve an exception outside the standard period."
+              }
+            ]
+          }
+        }
+      ],
+      "release": {
+        "http_status": 201,
+        "id": "402cf854-7c8d-42d9-84a0-14506caa785c",
+        "version": 1,
+        "document_version_ids": [
+          "68dab157-547c-431a-a881-3a1bb6d2196e"
+        ]
+      },
+      "cases": [
+        {
+          "id": "atlassian-grounded-1",
+          "type": "grounded",
+          "query": "When can an initial Atlassian app purchase be refunded?",
+          "expected_terms": [
+            "30 days",
+            "initial"
+          ],
+          "playground": {
+            "http_status": 200,
+            "decision_id": "64648c38-7eac-481a-aa1f-13f2fc1bd90c",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [2e5bb455-3291-4e41-bd0b-73ef46b34bd6] An initial Atlassian app purchase can be refunded when the request is made within 30 days of purchase. For a monthly cloud subscription, a refund is available only during the first paid month after the trial. A new annual cloud subscription can be refunded only within 30 days of its first purchase. Cloud renewals and upgrades cannot be refunded. Marketplace apps follow the same conditions, although a vendor can approve an exception outside the standard period.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "2e5bb455-3291-4e41-bd0b-73ef46b34bd6",
+                "chunk_id": "546d91eb-b355-4cf2-b619-b7e7898ffc1e",
+                "text": "An initial Atlassian app purchase can be refunded when the request is made within 30 days of purchase. For a monthly cloud subscription, a refund is available only during the first paid month after the trial. A new annual cloud subscription can be refunded only within 30 days of its first purchase. Cloud renewals and upgrades cannot be refunded. Marketplace apps follow the same conditions, although a vendor can approve an exception outside the standard period.",
+                "metadata": {
+                  "filename": "atlassian-request-refund.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.8084
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": {
+            "http_status": 200,
+            "decision_id": "b1af5b0d-2575-4631-a0ad-79a7e8983df4",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [2e5bb455-3291-4e41-bd0b-73ef46b34bd6] An initial Atlassian app purchase can be refunded when the request is made within 30 days of purchase. For a monthly cloud subscription, a refund is available only during the first paid month after the trial. A new annual cloud subscription can be refunded only within 30 days of its first purchase. Cloud renewals and upgrades cannot be refunded. Marketplace apps follow the same conditions, although a vendor can approve an exception outside the standard period.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "2e5bb455-3291-4e41-bd0b-73ef46b34bd6",
+                "chunk_id": "546d91eb-b355-4cf2-b619-b7e7898ffc1e",
+                "text": "An initial Atlassian app purchase can be refunded when the request is made within 30 days of purchase. For a monthly cloud subscription, a refund is available only during the first paid month after the trial. A new annual cloud subscription can be refunded only within 30 days of its first purchase. Cloud renewals and upgrades cannot be refunded. Marketplace apps follow the same conditions, although a vendor can approve an exception outside the standard period.",
+                "metadata": {
+                  "filename": "atlassian-request-refund.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.8084
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          }
+        },
+        {
+          "id": "atlassian-grounded-2",
+          "type": "grounded",
+          "query": "Are Atlassian cloud renewals and upgrades refundable?",
+          "expected_terms": [
+            "cannot be refunded"
+          ],
+          "playground": {
+            "http_status": 200,
+            "decision_id": "1a7b9359-6d54-452a-a8e0-0fa02e00eb97",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [2e5bb455-3291-4e41-bd0b-73ef46b34bd6] An initial Atlassian app purchase can be refunded when the request is made within 30 days of purchase. For a monthly cloud subscription, a refund is available only during the first paid month after the trial. A new annual cloud subscription can be refunded only within 30 days of its first purchase. Cloud renewals and upgrades cannot be refunded. Marketplace apps follow the same conditions, although a vendor can approve an exception outside the standard period.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "2e5bb455-3291-4e41-bd0b-73ef46b34bd6",
+                "chunk_id": "546d91eb-b355-4cf2-b619-b7e7898ffc1e",
+                "text": "An initial Atlassian app purchase can be refunded when the request is made within 30 days of purchase. For a monthly cloud subscription, a refund is available only during the first paid month after the trial. A new annual cloud subscription can be refunded only within 30 days of its first purchase. Cloud renewals and upgrades cannot be refunded. Marketplace apps follow the same conditions, although a vendor can approve an exception outside the standard period.",
+                "metadata": {
+                  "filename": "atlassian-request-refund.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.7338
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": null
+        },
+        {
+          "id": "atlassian-isolation",
+          "type": "isolation",
+          "query": "How do I recover a playlist after changing to a free music plan?",
+          "playground": {
+            "http_status": 200,
+            "decision_id": "754befdf-ec27-4a03-857e-73cb7fdd0d45",
+            "decision_state": "NEEDS_CLARIFICATION",
+            "answer": "I cannot safely approve an answer because the approved policy evidence is missing or does not support every material claim.",
+            "decision_reason": "One or more material draft claims are unsupported by retrieved policy evidence.",
+            "citations": [],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": false,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": null
+        }
+      ]
+    },
+    {
+      "company_id": "shopify",
+      "company_name": "Shopify",
+      "organization_id": "39e45494-fc2c-48f5-8e86-1818ccfd737e",
+      "workspace_id": "c39800dc-6a7b-4646-b090-574821f0d1fa",
+      "uploads": [
+        {
+          "document_id": "9d4b2423-5485-4904-82d4-fb5258a9cb32",
+          "document_name": "Refunding Shopify orders",
+          "filename": "shopify-refunding-orders.txt",
+          "source_url": "https://help.shopify.com/en/manual/orders/refund-cancel-order",
+          "uploaded_text": "A customer seeking a refund for an order placed with a Shopify-powered store must contact that store directly. A merchant can issue a full or partial refund from the Orders page in Shopify admin and can choose the original payment method, store credit, or both where supported. The merchant can optionally restock items and notify the customer. After a refund is initiated, the merchant cannot cancel or reverse that refund. A mistaken refund must be handled by creating a new draft order and collecting payment again.",
+          "upload_status": "READY_FOR_REVIEW",
+          "version": {
+            "status": "READY_FOR_REVIEW",
+            "extraction_error": null,
+            "page_count": 1,
+            "chunk_count": 1
+          },
+          "background_job": {
+            "status": "COMPLETED",
+            "attempts": 1,
+            "error": null
+          },
+          "preview": {
+            "document_id": "9d4b2423-5485-4904-82d4-fb5258a9cb32",
+            "document_version_id": "52a632ac-eb07-4f2d-a322-1eecaedbabc6",
+            "version": 1,
+            "chunks": [
+              {
+                "chunk_index": 0,
+                "page_number": null,
+                "text": "A customer seeking a refund for an order placed with a Shopify-powered store must contact that store directly. A merchant can issue a full or partial refund from the Orders page in Shopify admin and can choose the original payment method, store credit, or both where supported. The merchant can optionally restock items and notify the customer. After a refund is initiated, the merchant cannot cancel or reverse that refund. A mistaken refund must be handled by creating a new draft order and collecting payment again."
+              }
+            ]
+          }
+        }
+      ],
+      "release": {
+        "http_status": 201,
+        "id": "d57e65e2-a789-4f2d-9ad5-19e8b887201e",
+        "version": 1,
+        "document_version_ids": [
+          "52a632ac-eb07-4f2d-a322-1eecaedbabc6"
+        ]
+      },
+      "cases": [
+        {
+          "id": "shopify-grounded-1",
+          "type": "grounded",
+          "query": "As a customer, who do I contact for a refund from a Shopify store?",
+          "expected_terms": [
+            "store directly"
+          ],
+          "playground": {
+            "http_status": 200,
+            "decision_id": "d96f578f-ba4b-42a2-9506-308040a8dc3a",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [9d4b2423-5485-4904-82d4-fb5258a9cb32] A customer seeking a refund for an order placed with a Shopify-powered store must contact that store directly. A merchant can issue a full or partial refund from the Orders page in Shopify admin and can choose the original payment method, store credit, or both where supported. The merchant can optionally restock items and notify the customer. After a refund is initiated, the merchant cannot cancel or reverse that refund. A mistaken refund must be handled by creating a new draft order and collecting payment again.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "9d4b2423-5485-4904-82d4-fb5258a9cb32",
+                "chunk_id": "9eeca041-2823-482d-8a41-66180f7ba491",
+                "text": "A customer seeking a refund for an order placed with a Shopify-powered store must contact that store directly. A merchant can issue a full or partial refund from the Orders page in Shopify admin and can choose the original payment method, store credit, or both where supported. The merchant can optionally restock items and notify the customer. After a refund is initiated, the merchant cannot cancel or reverse that refund. A mistaken refund must be handled by creating a new draft order and collecting payment again.",
+                "metadata": {
+                  "filename": "shopify-refunding-orders.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.7862
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": {
+            "http_status": 200,
+            "decision_id": "445ab0ab-b95b-46b1-91e5-1ac0d4b54451",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [9d4b2423-5485-4904-82d4-fb5258a9cb32] A customer seeking a refund for an order placed with a Shopify-powered store must contact that store directly. A merchant can issue a full or partial refund from the Orders page in Shopify admin and can choose the original payment method, store credit, or both where supported. The merchant can optionally restock items and notify the customer. After a refund is initiated, the merchant cannot cancel or reverse that refund. A mistaken refund must be handled by creating a new draft order and collecting payment again.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "9d4b2423-5485-4904-82d4-fb5258a9cb32",
+                "chunk_id": "9eeca041-2823-482d-8a41-66180f7ba491",
+                "text": "A customer seeking a refund for an order placed with a Shopify-powered store must contact that store directly. A merchant can issue a full or partial refund from the Orders page in Shopify admin and can choose the original payment method, store credit, or both where supported. The merchant can optionally restock items and notify the customer. After a refund is initiated, the merchant cannot cancel or reverse that refund. A mistaken refund must be handled by creating a new draft order and collecting payment again.",
+                "metadata": {
+                  "filename": "shopify-refunding-orders.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.7862
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          }
+        },
+        {
+          "id": "shopify-grounded-2",
+          "type": "grounded",
+          "query": "Can a Shopify merchant reverse a refund after issuing it?",
+          "expected_terms": [
+            "cannot",
+            "reverse"
+          ],
+          "playground": {
+            "http_status": 200,
+            "decision_id": "e86856fc-8366-4045-b2d8-9aa719438793",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [9d4b2423-5485-4904-82d4-fb5258a9cb32] A customer seeking a refund for an order placed with a Shopify-powered store must contact that store directly. A merchant can issue a full or partial refund from the Orders page in Shopify admin and can choose the original payment method, store credit, or both where supported. The merchant can optionally restock items and notify the customer. After a refund is initiated, the merchant cannot cancel or reverse that refund. A mistaken refund must be handled by creating a new draft order and collecting payment again.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "9d4b2423-5485-4904-82d4-fb5258a9cb32",
+                "chunk_id": "9eeca041-2823-482d-8a41-66180f7ba491",
+                "text": "A customer seeking a refund for an order placed with a Shopify-powered store must contact that store directly. A merchant can issue a full or partial refund from the Orders page in Shopify admin and can choose the original payment method, store credit, or both where supported. The merchant can optionally restock items and notify the customer. After a refund is initiated, the merchant cannot cancel or reverse that refund. A mistaken refund must be handled by creating a new draft order and collecting payment again.",
+                "metadata": {
+                  "filename": "shopify-refunding-orders.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.6844
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": null
+        },
+        {
+          "id": "shopify-isolation",
+          "type": "isolation",
+          "query": "Will an annual meeting subscription remain active through its term?",
+          "playground": {
+            "http_status": 200,
+            "decision_id": "cd23833c-fb5c-4036-ac67-42d7d7d0a298",
+            "decision_state": "NEEDS_CLARIFICATION",
+            "answer": "I cannot safely approve an answer because the approved policy evidence is missing or does not support every material claim.",
+            "decision_reason": "One or more material draft claims are unsupported by retrieved policy evidence.",
+            "citations": [],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": false,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": null
+        }
+      ]
+    },
+    {
+      "company_id": "zoom",
+      "company_name": "Zoom",
+      "organization_id": "82660676-63dd-4a40-a441-e93f2ae79635",
+      "workspace_id": "03fde6fa-0178-4245-b9d9-a186aa778f24",
+      "uploads": [
+        {
+          "document_id": "a4b6939f-f1d9-43ba-a657-f1cbd3350bd0",
+          "document_name": "Zoom subscription cancellation and renewal charges",
+          "filename": "zoom-subscription-cancellation.txt",
+          "source_url": "https://support.zoom.com/hc/en/article?id=zm_kb&sysparm_article=KB0083524",
+          "uploaded_text": "A canceled monthly Zoom subscription remains active until the end of the current billing period. A canceled annual subscription remains active until the end of the current subscription term. When the subscription expires, the account changes to Zoom Basic and future automatic renewals stop. A subscription purchased through Apple, Google Play, or another reseller must be canceled with that third-party provider; Zoom Support cannot cancel or refund it. Subscription charges that have already been processed are non-refundable under Zoom's terms.",
+          "upload_status": "READY_FOR_REVIEW",
+          "version": {
+            "status": "READY_FOR_REVIEW",
+            "extraction_error": null,
+            "page_count": 1,
+            "chunk_count": 1
+          },
+          "background_job": {
+            "status": "COMPLETED",
+            "attempts": 1,
+            "error": null
+          },
+          "preview": {
+            "document_id": "a4b6939f-f1d9-43ba-a657-f1cbd3350bd0",
+            "document_version_id": "ef7b5ccd-0128-4987-b29f-f332dfa4ec11",
+            "version": 1,
+            "chunks": [
+              {
+                "chunk_index": 0,
+                "page_number": null,
+                "text": "A canceled monthly Zoom subscription remains active until the end of the current billing period. A canceled annual subscription remains active until the end of the current subscription term. When the subscription expires, the account changes to Zoom Basic and future automatic renewals stop. A subscription purchased through Apple, Google Play, or another reseller must be canceled with that third-party provider; Zoom Support cannot cancel or refund it. Subscription charges that have already been processed are non-refundable under Zoom's terms."
+              }
+            ]
+          }
+        }
+      ],
+      "release": {
+        "http_status": 201,
+        "id": "95e2d6ab-88dc-4552-b980-e84c0c8b13d5",
+        "version": 1,
+        "document_version_ids": [
+          "ef7b5ccd-0128-4987-b29f-f332dfa4ec11"
+        ]
+      },
+      "cases": [
+        {
+          "id": "zoom-grounded-1",
+          "type": "grounded",
+          "query": "Who handles cancellation if I bought Zoom through Apple or Google Play?",
+          "expected_terms": [
+            "provider",
+            "third-party"
+          ],
+          "playground": {
+            "http_status": 200,
+            "decision_id": "5e35d264-e348-43fe-89bc-1af38aa85aec",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [a4b6939f-f1d9-43ba-a657-f1cbd3350bd0] A canceled monthly Zoom subscription remains active until the end of the current billing period. A canceled annual subscription remains active until the end of the current subscription term. When the subscription expires, the account changes to Zoom Basic and future automatic renewals stop. A subscription purchased through Apple, Google Play, or another reseller must be canceled with that third-party provider; Zoom Support cannot cancel or refund it. Subscription charges that have already been processed are non-refundable under Zoom's terms.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "a4b6939f-f1d9-43ba-a657-f1cbd3350bd0",
+                "chunk_id": "3ee36c4d-aef9-433c-bc56-8106b5997020",
+                "text": "A canceled monthly Zoom subscription remains active until the end of the current billing period. A canceled annual subscription remains active until the end of the current subscription term. When the subscription expires, the account changes to Zoom Basic and future automatic renewals stop. A subscription purchased through Apple, Google Play, or another reseller must be canceled with that third-party provider; Zoom Support cannot cancel or refund it. Subscription charges that have already been processed are non-refundable under Zoom's terms.",
+                "metadata": {
+                  "filename": "zoom-subscription-cancellation.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.5682
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": {
+            "http_status": 200,
+            "decision_id": "fecd63e9-1a7b-4981-99e2-dd18f65ff4ea",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [a4b6939f-f1d9-43ba-a657-f1cbd3350bd0] A canceled monthly Zoom subscription remains active until the end of the current billing period. A canceled annual subscription remains active until the end of the current subscription term. When the subscription expires, the account changes to Zoom Basic and future automatic renewals stop. A subscription purchased through Apple, Google Play, or another reseller must be canceled with that third-party provider; Zoom Support cannot cancel or refund it. Subscription charges that have already been processed are non-refundable under Zoom's terms.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "a4b6939f-f1d9-43ba-a657-f1cbd3350bd0",
+                "chunk_id": "3ee36c4d-aef9-433c-bc56-8106b5997020",
+                "text": "A canceled monthly Zoom subscription remains active until the end of the current billing period. A canceled annual subscription remains active until the end of the current subscription term. When the subscription expires, the account changes to Zoom Basic and future automatic renewals stop. A subscription purchased through Apple, Google Play, or another reseller must be canceled with that third-party provider; Zoom Support cannot cancel or refund it. Subscription charges that have already been processed are non-refundable under Zoom's terms.",
+                "metadata": {
+                  "filename": "zoom-subscription-cancellation.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.5682
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          }
+        },
+        {
+          "id": "zoom-grounded-2",
+          "type": "grounded",
+          "query": "How long does a canceled annual Zoom subscription stay active?",
+          "expected_terms": [
+            "end",
+            "subscription term"
+          ],
+          "playground": {
+            "http_status": 200,
+            "decision_id": "2ca9490d-a9ae-4f47-8908-d1194e08f2f7",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [a4b6939f-f1d9-43ba-a657-f1cbd3350bd0] A canceled monthly Zoom subscription remains active until the end of the current billing period. A canceled annual subscription remains active until the end of the current subscription term. When the subscription expires, the account changes to Zoom Basic and future automatic renewals stop. A subscription purchased through Apple, Google Play, or another reseller must be canceled with that third-party provider; Zoom Support cannot cancel or refund it. Subscription charges that have already been processed are non-refundable under Zoom's terms.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "a4b6939f-f1d9-43ba-a657-f1cbd3350bd0",
+                "chunk_id": "3ee36c4d-aef9-433c-bc56-8106b5997020",
+                "text": "A canceled monthly Zoom subscription remains active until the end of the current billing period. A canceled annual subscription remains active until the end of the current subscription term. When the subscription expires, the account changes to Zoom Basic and future automatic renewals stop. A subscription purchased through Apple, Google Play, or another reseller must be canceled with that third-party provider; Zoom Support cannot cancel or refund it. Subscription charges that have already been processed are non-refundable under Zoom's terms.",
+                "metadata": {
+                  "filename": "zoom-subscription-cancellation.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.6249
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": null
+        },
+        {
+          "id": "zoom-isolation",
+          "type": "isolation",
+          "query": "What trip details are needed to find an item on a shuttle?",
+          "playground": {
+            "http_status": 200,
+            "decision_id": "dd11d051-3592-4236-8974-040410b92d41",
+            "decision_state": "NEEDS_CLARIFICATION",
+            "answer": "I cannot safely approve an answer because the approved policy evidence is missing or does not support every material claim.",
+            "decision_reason": "One or more material draft claims are unsupported by retrieved policy evidence.",
+            "citations": [],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": false,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": null
+        }
+      ]
+    },
+    {
+      "company_id": "youtube",
+      "company_name": "YouTube",
+      "organization_id": "366a5dd0-edee-4f18-ada9-aee107ddcca5",
+      "workspace_id": "6f546692-0431-49a1-af20-386c9cf27249",
+      "uploads": [
+        {
+          "document_id": "0d4587f3-54e5-495b-9cbd-cb10cd529d58",
+          "document_name": "Cancel YouTube Premium",
+          "filename": "youtube-cancel-premium.txt",
+          "source_url": "https://support.google.com/youtube/answer/6308278?hl=en",
+          "uploaded_text": "To cancel YouTube Premium on the web, open youtube.com/paid_memberships, choose Manage membership, select Deactivate, continue to cancel, give a reason, and confirm. Cancellation stops future renewal charges, but Premium benefits continue until the end of the current billing period. A membership billed through Apple must be managed in the Apple account, while one billed through Google Play must be managed in Google Play settings. Canceling does not produce a refund for the unused part of the current billing period.",
+          "upload_status": "READY_FOR_REVIEW",
+          "version": {
+            "status": "READY_FOR_REVIEW",
+            "extraction_error": null,
+            "page_count": 1,
+            "chunk_count": 1
+          },
+          "background_job": {
+            "status": "COMPLETED",
+            "attempts": 1,
+            "error": null
+          },
+          "preview": {
+            "document_id": "0d4587f3-54e5-495b-9cbd-cb10cd529d58",
+            "document_version_id": "de14d9a7-9a2e-4a2f-8abe-f389777bd9bb",
+            "version": 1,
+            "chunks": [
+              {
+                "chunk_index": 0,
+                "page_number": null,
+                "text": "To cancel YouTube Premium on the web, open youtube.com/paid_memberships, choose Manage membership, select Deactivate, continue to cancel, give a reason, and confirm. Cancellation stops future renewal charges, but Premium benefits continue until the end of the current billing period. A membership billed through Apple must be managed in the Apple account, while one billed through Google Play must be managed in Google Play settings. Canceling does not produce a refund for the unused part of the current billing period."
+              }
+            ]
+          }
+        }
+      ],
+      "release": {
+        "http_status": 201,
+        "id": "7a716735-4930-4cde-bcf2-e2159d4b1e3b",
+        "version": 1,
+        "document_version_ids": [
+          "de14d9a7-9a2e-4a2f-8abe-f389777bd9bb"
+        ]
+      },
+      "cases": [
+        {
+          "id": "youtube-grounded-1",
+          "type": "grounded",
+          "query": "How do I cancel YouTube Premium on the web?",
+          "expected_terms": [
+            "paid_memberships",
+            "deactivate"
+          ],
+          "playground": {
+            "http_status": 200,
+            "decision_id": "7766354d-91a0-415c-b19e-f22d4ca3c1d2",
+            "decision_state": "APPROVED_WITH_REWRITE",
+            "answer": "I can help make the policy clearer.\n\nAccording to the approved policy:\n- [0d4587f3-54e5-495b-9cbd-cb10cd529d58] To cancel YouTube Premium on the web, open youtube.com/paid_memberships, choose Manage membership, select Deactivate, continue to cancel, give a reason, and confirm. Cancellation stops future renewal charges, but Premium benefits continue until the end of the current billing period. A membership billed through Apple must be managed in the Apple account, while one billed through Google Play must be managed in Google Play settings. Canceling does not produce a refund for the unused part of the current billing period.",
+            "decision_reason": "The answer is safe and supported; presentation was adapted to the customer's tone.",
+            "citations": [
+              {
+                "document_id": "0d4587f3-54e5-495b-9cbd-cb10cd529d58",
+                "chunk_id": "bc5d4e9b-fc84-4da5-b85c-7ae47d554348",
+                "text": "To cancel YouTube Premium on the web, open youtube.com/paid_memberships, choose Manage membership, select Deactivate, continue to cancel, give a reason, and confirm. Cancellation stops future renewal charges, but Premium benefits continue until the end of the current billing period. A membership billed through Apple must be managed in the Apple account, while one billed through Google Play must be managed in Google Play settings. Canceling does not produce a refund for the unused part of the current billing period.",
+                "metadata": {
+                  "filename": "youtube-cancel-premium.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.7708
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": {
+            "http_status": 200,
+            "decision_id": "ad101a1b-091e-4b90-bdba-8f543b157c7f",
+            "decision_state": "APPROVED_WITH_REWRITE",
+            "answer": "I can help make the policy clearer.\n\nAccording to the approved policy:\n- [0d4587f3-54e5-495b-9cbd-cb10cd529d58] To cancel YouTube Premium on the web, open youtube.com/paid_memberships, choose Manage membership, select Deactivate, continue to cancel, give a reason, and confirm. Cancellation stops future renewal charges, but Premium benefits continue until the end of the current billing period. A membership billed through Apple must be managed in the Apple account, while one billed through Google Play must be managed in Google Play settings. Canceling does not produce a refund for the unused part of the current billing period.",
+            "decision_reason": "The answer is safe and supported; presentation was adapted to the customer's tone.",
+            "citations": [
+              {
+                "document_id": "0d4587f3-54e5-495b-9cbd-cb10cd529d58",
+                "chunk_id": "bc5d4e9b-fc84-4da5-b85c-7ae47d554348",
+                "text": "To cancel YouTube Premium on the web, open youtube.com/paid_memberships, choose Manage membership, select Deactivate, continue to cancel, give a reason, and confirm. Cancellation stops future renewal charges, but Premium benefits continue until the end of the current billing period. A membership billed through Apple must be managed in the Apple account, while one billed through Google Play must be managed in Google Play settings. Canceling does not produce a refund for the unused part of the current billing period.",
+                "metadata": {
+                  "filename": "youtube-cancel-premium.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.7708
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          }
+        },
+        {
+          "id": "youtube-grounded-2",
+          "type": "grounded",
+          "query": "Do YouTube Premium benefits stop immediately when I cancel?",
+          "expected_terms": [
+            "end",
+            "billing period"
+          ],
+          "playground": {
+            "http_status": 200,
+            "decision_id": "a478c53f-7b8f-4326-8fc9-d4c4e6e9fd04",
+            "decision_state": "APPROVED",
+            "answer": "According to the approved policy:\n- [0d4587f3-54e5-495b-9cbd-cb10cd529d58] To cancel YouTube Premium on the web, open youtube.com/paid_memberships, choose Manage membership, select Deactivate, continue to cancel, give a reason, and confirm. Cancellation stops future renewal charges, but Premium benefits continue until the end of the current billing period. A membership billed through Apple must be managed in the Apple account, while one billed through Google Play must be managed in Google Play settings. Canceling does not produce a refund for the unused part of the current billing period.",
+            "decision_reason": "The answer is grounded in approved policy and passed security and claim verification.",
+            "citations": [
+              {
+                "document_id": "0d4587f3-54e5-495b-9cbd-cb10cd529d58",
+                "chunk_id": "bc5d4e9b-fc84-4da5-b85c-7ae47d554348",
+                "text": "To cancel YouTube Premium on the web, open youtube.com/paid_memberships, choose Manage membership, select Deactivate, continue to cancel, give a reason, and confirm. Cancellation stops future renewal charges, but Premium benefits continue until the end of the current billing period. A membership billed through Apple must be managed in the Apple account, while one billed through Google Play must be managed in Google Play settings. Canceling does not produce a refund for the unused part of the current billing period.",
+                "metadata": {
+                  "filename": "youtube-cancel-premium.txt",
+                  "page": null,
+                  "approved": true
+                },
+                "distance_or_similarity": 0.5038
+              }
+            ],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": true,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": null
+        },
+        {
+          "id": "youtube-isolation",
+          "type": "isolation",
+          "query": "Can an organization remove paid code-hosting seats with proration?",
+          "playground": {
+            "http_status": 200,
+            "decision_id": "92858207-0ed9-4c0a-9d10-a95f722e71cf",
+            "decision_state": "NEEDS_CLARIFICATION",
+            "answer": "I cannot safely approve an answer because the approved policy evidence is missing or does not support every material claim.",
+            "decision_reason": "One or more material draft claims are unsupported by retrieved policy evidence.",
+            "citations": [],
+            "generation_mode": "deterministic",
+            "sage_warnings": [],
+            "oracle_supported": false,
+            "usage_units": 1,
+            "passed": true
+          },
+          "api_key": null
+        }
+      ]
+    }
+  ]
+}

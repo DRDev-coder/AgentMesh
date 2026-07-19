@@ -96,24 +96,22 @@ def _scan(text: str, patterns: list[tuple[str, str]]) -> list[str]:
 
 def _contains_credential_request(text: str, *, answer: bool = False) -> bool:
     normalized = normalize_security_text(text)
-    compact = re.sub(r"[^a-z0-9]", "", normalized)
-    credential_present = any(
-        term in compact
-        for term in (
-            "otp",
-            "onetimecode",
-            "onetimepasscode",
-            "onetimepassword",
-            "verificationcode",
-            "securitycode",
-            "cvv",
-            "cvc",
-            "password",
-            "passcode",
-            "upipin",
-            "atmpin",
+    # Match a credential as a word or an intentionally separator-obfuscated
+    # sequence. Compacting the entire sentence caused cross-word false positives:
+    # for example, "does not produce" contains the letters "otp" after all
+    # spaces are removed.
+    credential_present = bool(
+        re.search(
+            r"\b(?:"
+            r"o\s*t\s*p|c\s*v\s*v|c\s*v\s*c|p\s*i\s*n|"
+            r"password|passcode|"
+            r"one\s*time\s*(?:code|pass\s*code|passcode|password)|"
+            r"verification\s*code|security\s*code|"
+            r"upi\s*pin|atm\s*pin"
+            r")\b",
+            normalized,
         )
-    ) or bool(re.search(r"\bp\s*i\s*n\b", normalized))
+    )
     if not credential_present:
         return False
 

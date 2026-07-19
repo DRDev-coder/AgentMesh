@@ -185,6 +185,16 @@ class Settings:
             )
         ):
             raise RuntimeError("Azure Blob Storage configuration is incomplete")
+        if (
+            self.environment in {"staging", "production"}
+            and not self.tasks_eager
+            and self.object_storage_backend == "local"
+        ):
+            raise RuntimeError(
+                "Asynchronous staging/production ingestion requires shared object "
+                "storage; configure OBJECT_STORAGE_BACKEND=s3 or azure_blob, or use "
+                "TASKS_EAGER=true only as a temporary staging workaround"
+            )
         if self.auth_mode == "supabase" and not self.supabase_url:
             raise RuntimeError("SUPABASE_URL is required when AUTH_MODE=supabase")
         if self.is_production:

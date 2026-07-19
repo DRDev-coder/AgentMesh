@@ -1,0 +1,176 @@
+{
+  "evaluation_date": "2026-07-19",
+  "method": "Paraphrased test knowledge derived from official public support pages. These fixtures are for AgentMesh evaluation and are not endorsed by the named companies.",
+  "companies": [
+    {
+      "company_id": "github",
+      "company_name": "GitHub",
+      "documents": [
+        {
+          "document_id": "plan-change-billing",
+          "title": "Impact of plan changes on billing",
+          "filename": "documents/github-plan-billing.txt",
+          "source_url": "https://docs.github.com/en/billing/concepts/impact-of-plan-changes"
+        }
+      ],
+      "tests": [
+        {"id": "github-grounded-1", "type": "grounded", "query": "When does a paid GitHub plan cancellation take effect?", "expected_terms": ["end", "billing cycle"]},
+        {"id": "github-grounded-2", "type": "grounded", "query": "Are GitHub plan upgrades prorated?", "expected_terms": ["immediately", "prorated"]},
+        {"id": "github-isolation", "type": "isolation", "query": "How do I coordinate the return of an item left on a shuttle?"}
+      ]
+    },
+    {
+      "company_id": "spotify",
+      "company_name": "Spotify",
+      "documents": [
+        {
+          "document_id": "cancel-premium",
+          "title": "How to cancel Premium",
+          "filename": "documents/spotify-cancel-premium.txt",
+          "source_url": "https://support.spotify.com/article/cancel-premium/"
+        }
+      ],
+      "tests": [
+        {"id": "spotify-grounded-1", "type": "grounded", "query": "How do I cancel Spotify Premium?", "expected_terms": ["manage your plan", "cancel subscription"]},
+        {"id": "spotify-grounded-2", "type": "grounded", "query": "Will I keep my playlists after Premium ends?", "expected_terms": ["playlists", "saved music"]},
+        {"id": "spotify-isolation", "type": "isolation", "query": "Can a merchant reverse an order refund after it is issued?"}
+      ]
+    },
+    {
+      "company_id": "netflix",
+      "company_name": "Netflix",
+      "documents": [
+        {
+          "document_id": "charged-after-canceling",
+          "title": "Charged after canceling Netflix",
+          "filename": "documents/netflix-charged-after-canceling.txt",
+          "source_url": "https://help.netflix.com/en/node/124418"
+        }
+      ],
+      "tests": [
+        {"id": "netflix-grounded-1", "type": "grounded", "query": "When does my Netflix account close after cancellation?", "expected_terms": ["end", "billing cycle"]},
+        {"id": "netflix-grounded-2", "type": "grounded", "query": "Why might I be charged after canceling Netflix and what should I do?", "expected_terms": ["restarted", "password"]},
+        {"id": "netflix-isolation", "type": "isolation", "query": "Is an initial marketplace app purchase refundable within 30 days?"}
+      ]
+    },
+    {
+      "company_id": "uber",
+      "company_name": "Uber",
+      "documents": [
+        {
+          "document_id": "shuttle-lost-items",
+          "title": "Lost items on shuttle trips",
+          "filename": "documents/uber-shuttle-lost-items.txt",
+          "source_url": "https://help.uber.com/riders/article/lost-items?nodeId=c4946b77-835c-49cb-b85c-5a4611a1da17"
+        }
+      ],
+      "tests": [
+        {"id": "uber-grounded-1", "type": "grounded", "query": "What details should I provide for an item lost on an Uber shuttle?", "expected_terms": ["trip", "description"]},
+        {"id": "uber-grounded-2", "type": "grounded", "query": "Will Uber contact the shuttle driver about my lost item?", "expected_terms": ["driver", "return"]},
+        {"id": "uber-isolation", "type": "isolation", "query": "Does downgrading a cloud storage plan leave me with 2 GB?"}
+      ]
+    },
+    {
+      "company_id": "airbnb",
+      "company_name": "Airbnb",
+      "documents": [
+        {
+          "document_id": "guest-cancellation-refunds",
+          "title": "Understanding home cancellation policies as a guest",
+          "filename": "documents/airbnb-guest-cancellation.txt",
+          "source_url": "https://www.airbnb.com/help/article/4052"
+        }
+      ],
+      "tests": [
+        {"id": "airbnb-grounded-1", "type": "grounded", "query": "Can I see my Airbnb refund amount before I cancel?", "expected_terms": ["trips", "before"]},
+        {"id": "airbnb-grounded-2", "type": "grounded", "query": "What refund do I get if my Airbnb host cancels?", "expected_terms": ["full refund", "host"]},
+        {"id": "airbnb-isolation", "type": "isolation", "query": "Where is the button for canceling a video membership?"}
+      ]
+    },
+    {
+      "company_id": "dropbox",
+      "company_name": "Dropbox",
+      "documents": [
+        {
+          "document_id": "subscription-refunds",
+          "title": "Dropbox subscription refunds",
+          "filename": "documents/dropbox-subscription-refunds.txt",
+          "source_url": "https://help.dropbox.com/plans/refund"
+        }
+      ],
+      "tests": [
+        {"id": "dropbox-grounded-1", "type": "grounded", "query": "Are Dropbox subscription payments normally refundable?", "expected_terms": ["not refundable"]},
+        {"id": "dropbox-grounded-2", "type": "grounded", "query": "Can a UK customer get a Dropbox refund within 14 days?", "expected_terms": ["uk", "14 days"]},
+        {"id": "dropbox-isolation", "type": "isolation", "query": "Who sets the refund terms for a home reservation?"}
+      ]
+    },
+    {
+      "company_id": "atlassian",
+      "company_name": "Atlassian",
+      "documents": [
+        {
+          "document_id": "request-refund",
+          "title": "Request an Atlassian refund",
+          "filename": "documents/atlassian-request-refund.txt",
+          "source_url": "https://support.atlassian.com/subscriptions-and-billing/docs/request-a-refund/"
+        }
+      ],
+      "tests": [
+        {"id": "atlassian-grounded-1", "type": "grounded", "query": "When can an initial Atlassian app purchase be refunded?", "expected_terms": ["30 days", "initial"]},
+        {"id": "atlassian-grounded-2", "type": "grounded", "query": "Are Atlassian cloud renewals and upgrades refundable?", "expected_terms": ["cannot be refunded"]},
+        {"id": "atlassian-isolation", "type": "isolation", "query": "How do I recover a playlist after changing to a free music plan?"}
+      ]
+    },
+    {
+      "company_id": "shopify",
+      "company_name": "Shopify",
+      "documents": [
+        {
+          "document_id": "refunding-orders",
+          "title": "Refunding Shopify orders",
+          "filename": "documents/shopify-refunding-orders.txt",
+          "source_url": "https://help.shopify.com/en/manual/orders/refund-cancel-order"
+        }
+      ],
+      "tests": [
+        {"id": "shopify-grounded-1", "type": "grounded", "query": "As a customer, who do I contact for a refund from a Shopify store?", "expected_terms": ["store directly"]},
+        {"id": "shopify-grounded-2", "type": "grounded", "query": "Can a Shopify merchant reverse a refund after issuing it?", "expected_terms": ["cannot", "reverse"]},
+        {"id": "shopify-isolation", "type": "isolation", "query": "Will an annual meeting subscription remain active through its term?"}
+      ]
+    },
+    {
+      "company_id": "zoom",
+      "company_name": "Zoom",
+      "documents": [
+        {
+          "document_id": "subscription-cancellation",
+          "title": "Zoom subscription cancellation and renewal charges",
+          "filename": "documents/zoom-subscription-cancellation.txt",
+          "source_url": "https://support.zoom.com/hc/en/article?id=zm_kb&sysparm_article=KB0083524"
+        }
+      ],
+      "tests": [
+        {"id": "zoom-grounded-1", "type": "grounded", "query": "Who handles cancellation if I bought Zoom through Apple or Google Play?", "expected_terms": ["provider", "third-party"]},
+        {"id": "zoom-grounded-2", "type": "grounded", "query": "How long does a canceled annual Zoom subscription stay active?", "expected_terms": ["end", "subscription term"]},
+        {"id": "zoom-isolation", "type": "isolation", "query": "What trip details are needed to find an item on a shuttle?"}
+      ]
+    },
+    {
+      "company_id": "youtube",
+      "company_name": "YouTube",
+      "documents": [
+        {
+          "document_id": "cancel-premium",
+          "title": "Cancel YouTube Premium",
+          "filename": "documents/youtube-cancel-premium.txt",
+          "source_url": "https://support.google.com/youtube/answer/6308278?hl=en"
+        }
+      ],
+      "tests": [
+        {"id": "youtube-grounded-1", "type": "grounded", "query": "How do I cancel YouTube Premium on the web?", "expected_terms": ["paid_memberships", "deactivate"]},
+        {"id": "youtube-grounded-2", "type": "grounded", "query": "Do YouTube Premium benefits stop immediately when I cancel?", "expected_terms": ["end", "billing period"]},
+        {"id": "youtube-isolation", "type": "isolation", "query": "Can an organization remove paid code-hosting seats with proration?"}
+      ]
+    }
+  ]
+}

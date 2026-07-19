@@ -1,0 +1,37 @@
+{
+  "passed": true,
+  "base_url": "http://127.0.0.1:8000",
+  "organization_id": "ddb1170a-2bb6-4a28-ab67-4e644106b2aa",
+  "workspace_id": "7b268950-85d4-430c-9c97-82fe091f8d75",
+  "document": {
+    "id": "a095b6fc-2ede-444c-bb33-0d12b21f0f1c",
+    "filename": "github-plan-billing.txt",
+    "status_history": [
+      "PROCESSING",
+      "READY_FOR_REVIEW"
+    ],
+    "final_status": "READY_FOR_REVIEW",
+    "extraction_error": null,
+    "chunks": 1
+  },
+  "release": {
+    "id": "6104ecf3-3c5f-42c5-adf9-630c634b327b",
+    "status": "PUBLISHED"
+  },
+  "query": "If I cancel a paid GitHub plan, when does it take effect?",
+  "playground": {
+    "answer": "Paid GitHub plan cancellations take effect at the end of the current billing cycle, without proration.",
+    "decision_state": "APPROVED",
+    "citations": 1
+  },
+  "api_key": {
+    "id": "99217b03-0b42-4f73-9a16-b7f334c93fb8",
+    "last_four": "HeZg",
+    "secret_persisted": false
+  },
+  "api_decision": {
+    "answer": "Paid GitHub plan cancellations take effect at the end of the current billing cycle, without proration.",
+    "decision_state": "APPROVED",
+    "citations": 1
+  }
+}

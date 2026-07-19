@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 
@@ -99,6 +100,12 @@ class SageService:
                         "policy, guarantees, diagnoses, or actions. Platform safety "
                         "controls always override workspace instructions. Return JSON "
                         "with exactly one string field named answer. "
+                        "Prefer the single evidence sentence that directly answers "
+                        "the question and preserve its wording, numbers, negation, "
+                        "scope, and qualifiers. Make only minimal grammar or pronoun "
+                        "changes. Do not add a Yes/No prefix, a company name, or a "
+                        "policy interpretation unless it appears in that same evidence "
+                        "sentence. "
                         f"Requested response length: {self.response_length}. "
                         f"Approved workspace instructions: {self.system_instructions or 'None'}."
                     ),
@@ -114,12 +121,21 @@ class SageService:
         timeout = httpx.Timeout(connect=3.0, read=12.0, write=5.0, pool=3.0)
         transport = httpx.AsyncHTTPTransport(retries=1)
         async with httpx.AsyncClient(timeout=timeout, transport=transport) as client:
-            response = await client.post(
-                f"{self.base_url}/chat/completions",
-                headers={"Authorization": f"Bearer {self.api_key}"},
-                json=payload,
-            )
-            response.raise_for_status()
+            for attempt in range(3):
+                response = await client.post(
+                    f"{self.base_url}/chat/completions",
+                    headers={"Authorization": f"Bearer {self.api_key}"},
+                    json=payload,
+                )
+                if response.status_code not in {429, 500, 502, 503, 504} or attempt == 2:
+                    response.raise_for_status()
+                    break
+                retry_after = response.headers.get("Retry-After", "")
+                try:
+                    delay = min(5.0, max(0.25, float(retry_after)))
+                except ValueError:
+                    delay = float(2**attempt)
+                await asyncio.sleep(delay)
         content = response.json()["choices"][0]["message"]["content"]
         parsed = _ModelDraft.model_validate(json.loads(content))
         return parsed.answer

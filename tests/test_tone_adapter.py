@@ -37,6 +37,16 @@ def test_emotion_analysis_selects_response_strategy(
     assert output.recommended_tone == expected_tone
 
 
+def test_policy_timing_question_is_not_misclassified_as_urgent() -> None:
+    output = EmotionAnalyzer().analyze(
+        "Do subscription benefits stop immediately when I cancel?"
+    )
+
+    assert output.emotion == "NEUTRAL"
+    assert output.urgency == 4
+    assert output.requires_urgent_review is False
+
+
 def test_tone_adaptation_preserves_verified_body_byte_for_byte() -> None:
     empath = EmotionAnalyzer().analyze(
         "I called four times and no one helped with my refund."

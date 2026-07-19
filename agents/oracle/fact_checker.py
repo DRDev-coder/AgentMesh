@@ -12,8 +12,8 @@ from shared.schemas import (
 
 _STOP_WORDS = {
     "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "has",
-    "in", "is", "it", "of", "on", "or", "that", "the", "this", "to", "will",
-    "with", "you", "your",
+    "help", "in", "is", "it", "of", "on", "or", "please", "policy", "support",
+    "that", "the", "this", "to", "user", "users", "will", "with", "you", "your",
 }
 
 _MATERIAL_MARKERS = {
@@ -50,7 +50,31 @@ _MATERIAL_MARKERS = {
 
 def _tokens(text: str) -> set[str]:
     words = re.findall(r"[a-z0-9]+", text.lower())
-    return {word for word in words if word not in _STOP_WORDS and len(word) > 1}
+    aliases = {
+        "apps": "app",
+        "canceled": "cancel",
+        "cancelled": "cancel",
+        "canceling": "cancel",
+        "cancelling": "cancel",
+        "cancellation": "cancel",
+        "cancellations": "cancel",
+        "charged": "charge",
+        "charges": "charge",
+        "closes": "close",
+        "details": "detail",
+        "items": "item",
+        "payments": "payment",
+        "purchases": "purchase",
+        "refunded": "refund",
+        "refundable": "refund",
+        "refunds": "refund",
+        "subscriptions": "subscription",
+    }
+    return {
+        aliases.get(word, word)
+        for word in words
+        if word not in _STOP_WORDS and len(word) > 1
+    }
 
 
 def _normalized(text: str) -> str:
@@ -58,7 +82,38 @@ def _normalized(text: str) -> str:
 
 
 def _material_markers(text: str) -> set[str]:
-    return set(re.findall(r"[a-z0-9]+", text.lower())) & _MATERIAL_MARKERS
+    aliases = {
+        "above": "LIMIT_ABOVE",
+        "all": "UNIVERSAL",
+        "always": "UNIVERSAL",
+        "below": "LIMIT_BELOW",
+        "cannot": "NEGATION",
+        "complete": "COMPLETION",
+        "completed": "COMPLETION",
+        "denied": "NEGATION",
+        "deny": "NEGATION",
+        "every": "UNIVERSAL",
+        "free": "FREE",
+        "guarantee": "GUARANTEE",
+        "guaranteed": "GUARANTEE",
+        "immediately": "IMMEDIATE",
+        "instant": "IMMEDIATE",
+        "maximum": "MAXIMUM",
+        "minimum": "MINIMUM",
+        "must": "REQUIREMENT",
+        "never": "NEGATION",
+        "no": "NEGATION",
+        "not": "NEGATION",
+        "only": "REQUIREMENT",
+        "required": "REQUIREMENT",
+        "requires": "REQUIREMENT",
+        "should": "RECOMMENDATION",
+        "up": "LIMIT_UP_TO",
+        "within": "WITHIN",
+        "without": "NEGATION",
+    }
+    markers = set(re.findall(r"[a-z0-9]+", text.lower())) & _MATERIAL_MARKERS
+    return {aliases[marker] for marker in markers}
 
 
 def _sentences(text: str) -> list[str]:

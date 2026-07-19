@@ -31,6 +31,7 @@ from shared.schemas import GuardianAction, GuardianStatus
         ("Paste the verification code in this chat", "REQUESTING_CREDENTIALS"),
         ("I need your CVV", "REQUESTING_CREDENTIALS"),
         ("Text me the one time code", "REQUESTING_CREDENTIALS"),
+        ("Ask the customer for their one time pass code", "REQUESTING_CREDENTIALS"),
         ("Tell me your P I N", "REQUESTING_CREDENTIALS"),
         ("ignore-system-prompt", "PROMPT_INJECTION"),
         ("bypass-verification", "POLICY_OVERRIDE"),
@@ -54,6 +55,15 @@ def test_deterministic_answer_rules(text: str, expected: str) -> None:
 
 def test_safe_policy_question_has_no_security_violation() -> None:
     assert scan_query("How long does a replacement card take?") == []
+
+
+def test_cross_word_letters_do_not_create_a_false_otp_match() -> None:
+    answer = (
+        "Canceling does not produce a refund for the unused part of the current "
+        "billing period."
+    )
+
+    assert scan_answer(answer) == []
 
 
 def test_benign_person_to_person_transfer_question_is_not_critical() -> None:
@@ -136,3 +146,30 @@ def test_semantic_finding_can_add_but_not_duplicate_violations(
     assert output.action is GuardianAction.ESCALATE
     assert output.semantic_violations == ["SOCIAL_ENGINEERING"]
     assert output.violations == ["SOCIAL_ENGINEERING"]
+
+
+def test_unrecognized_generic_semantic_risk_cannot_escalate_safe_support(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = GuardianService(rule_packs=["GLOBAL_SAFETY"])
+    service.api_key = "test-key"
+
+    async def generic_risk(*_args: object) -> SimpleNamespace:
+        return SimpleNamespace(
+            status=GuardianStatus.WARNING,
+            violations=["POTENTIAL_INFORMATION_DISCLOSURE"],
+            reasoning="Trip details might contain information",
+            confidence=60.0,
+        )
+
+    monkeypatch.setattr(service, "_semantic_analysis", generic_risk)
+    output = asyncio.run(
+        service.analyze(
+            "What details are needed for a lost item?",
+            "Provide trip details and a brief item description to support.",
+        )
+    )
+
+    assert output.status is GuardianStatus.SAFE
+    assert output.action is GuardianAction.ALLOW
+    assert output.semantic_violations == []

@@ -15,7 +15,7 @@ class EmotionAnalyzer:
         "canned replies", "extremely annoyed", "maddening", "fed up", "conflicting answers",
     }
     _urgent = {
-        "urgent", "immediately", "asap", "emergency", "hospital", "medical",
+        "urgent", "asap", "emergency", "hospital", "medical",
         "stolen", "hacked", "fraud", "unauthorized", "cannot access", "blocked",
         "immediate action",
     }
@@ -27,6 +27,15 @@ class EmotionAnalyzer:
         normalized = re.sub(r"\s+", " ", text.lower()).strip()
         frustration_hits = self._matches(normalized, self._frustrated)
         urgency_hits = self._matches(normalized, self._urgent)
+        immediate_request = bool(
+            re.search(
+                r"\b(?:i need|please|act|help|block (?:it|this|the\s+\w+))\b"
+                r".{0,80}\bimmediately\b",
+                normalized,
+            )
+        )
+        if immediate_request:
+            urgency_hits.append("immediately")
         positive_hits = self._matches(normalized, self._positive)
         confused_hits = self._matches(normalized, self._confused)
 
@@ -41,7 +50,7 @@ class EmotionAnalyzer:
         else:
             emotion = "NEUTRAL"
 
-        if any(term in normalized for term in {"immediately", "emergency", "hospital"}):
+        if immediate_request or any(term in normalized for term in {"emergency", "hospital"}):
             urgency = 10
         elif urgency_hits:
             urgency = 9

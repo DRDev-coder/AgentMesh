@@ -45,6 +45,48 @@ ALLOWED_MEDIA_TYPES = {
 }
 
 
+_RETRIEVAL_STOP_WORDS = {
+    "a", "an", "and", "are", "as", "at", "be", "been", "before", "by",
+    "can", "could", "do", "does", "for", "from", "get", "had", "has",
+    "have", "how", "i", "if", "in", "is", "it", "me", "my", "of", "on",
+    "or", "our", "please", "should", "that", "the", "their", "this", "to",
+    "was", "what", "when", "where", "which", "who", "will", "with", "would",
+    "you", "your",
+}
+
+
+_RETRIEVAL_ALIASES = {
+    "canceled": "cancel",
+    "cancelled": "cancel",
+    "canceling": "cancel",
+    "cancelling": "cancel",
+    "cancellation": "cancel",
+    "cancellations": "cancel",
+    "charged": "charge",
+    "charges": "charge",
+    "items": "item",
+    "payments": "payment",
+    "playlists": "playlist",
+    "products": "product",
+    "refunded": "refund",
+    "refundable": "refund",
+    "refunds": "refund",
+    "renewals": "renewal",
+    "returned": "return",
+    "returns": "return",
+    "subscriptions": "subscription",
+    "upgrades": "upgrade",
+}
+
+
+def _retrieval_tokens(text: str) -> set[str]:
+    return {
+        _RETRIEVAL_ALIASES.get(token, token)
+        for token in re.findall(r"[a-z0-9]{2,}", text.lower())
+        if token not in _RETRIEVAL_STOP_WORDS
+    }
+
+
 @dataclass(frozen=True, slots=True)
 class ExtractedPage:
     number: int | None
@@ -621,12 +663,21 @@ def retrieve_sources(
             DocumentChunk.document_version_id.in_(version_ids),
         )
     ).all()
-    query_tokens = set(re.findall(r"[a-z0-9]{2,}", query.lower()))
+    query_tokens = _retrieval_tokens(query)
+    if not query_tokens:
+        return [], release_id
     query_embedding = embedding(query)
     ranked: list[tuple[float, DocumentChunk]] = []
     for chunk in chunks:
-        chunk_tokens = set(re.findall(r"[a-z0-9]{2,}", chunk.text.lower()))
-        lexical = len(query_tokens & chunk_tokens) / max(len(query_tokens), 1)
+        chunk_tokens = _retrieval_tokens(chunk.text)
+        overlap_count = len(query_tokens & chunk_tokens)
+        # The current hashing-v1 vector is a compact lexical hash, not a semantic
+        # embedding. It can collide for unrelated words, so vector similarity must
+        # never make a zero/one-token cross-topic match eligible by itself.
+        minimum_overlap = 1 if len(query_tokens) <= 2 else 2
+        if overlap_count < minimum_overlap:
+            continue
+        lexical = overlap_count / max(len(query_tokens), 1)
         vector = _embedding_values(chunk.embedding)
         cosine = sum(a * b for a, b in zip(query_embedding, vector, strict=False))
         score = max(0.0, min(1.0, (0.65 * lexical) + (0.35 * max(0.0, cosine))))
