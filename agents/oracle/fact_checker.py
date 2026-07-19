@@ -65,6 +65,11 @@ def _sentences(text: str) -> list[str]:
     return [item.strip() for item in re.split(r"(?<=[.!?])\s+", text) if item.strip()]
 
 
+def _strip_citation_markers(text: str) -> str:
+    text = re.sub(r"\[[^\]]+\]", "", text).strip()
+    return re.sub(r"\s+([.!?])", r"\1", text)
+
+
 class FactChecker:
     """Verifies extracted draft claims against application-controlled evidence.
 
@@ -109,7 +114,7 @@ class FactChecker:
             cleaned = re.sub(r"^[-*]\s*", "", cleaned)
             cleaned = re.sub(r"^\[[^\]]+\]\s*", "", cleaned)
             for sentence in re.split(r"(?<=[.!?])\s+", cleaned):
-                sentence = sentence.strip()
+                sentence = _strip_citation_markers(sentence)
                 # Short claims such as "Guaranteed." are still material. Dropping
                 # them would let a model append an unsupported qualifier to an
                 # otherwise supported answer.

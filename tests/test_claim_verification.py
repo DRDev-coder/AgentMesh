@@ -122,3 +122,27 @@ def test_one_word_material_claim_is_not_dropped() -> None:
     ]
     assert output.overall_supported is False
     assert output.unsupported_claims == ["Guaranteed."]
+
+
+def test_source_citation_markers_are_not_verified_as_claims() -> None:
+    output = FactChecker().verify(
+        "Standard customers must wait 7 business days for refund investigation. "
+        "[refund_policy_1]",
+        [REFUND_SOURCE],
+    )
+
+    assert output.overall_supported is True
+    assert output.unsupported_claims == []
+    assert [claim.claim for claim in output.claims] == [
+        "Standard customers must wait 7 business days for refund investigation."
+    ]
+
+
+def test_inline_source_citation_markers_are_removed_from_claims() -> None:
+    output = FactChecker().verify(
+        "Standard customers must wait 7 business days for refund investigation [refund_policy_1].",
+        [REFUND_SOURCE],
+    )
+
+    assert output.overall_supported is True
+    assert output.unsupported_claims == []
