@@ -1,58 +1,150 @@
-# Deployment Guide
+# AgentMesh deployment runbook
 
-## Backend on Render (Free Tier)
+The supported production topology is a static frontend, the FastAPI API with separate Celery worker/scheduler, Supabase for Auth/PostgreSQL/pgvector/private object storage/backups, managed Redis, and Razorpay Subscriptions. Development, staging, and production must use separate projects and secrets.
 
-1. Push code to GitHub
-2. Go to [dashboard.render.com](https://dashboard.render.com)
-3. Click **New +** → **Blueprint**
-4. Connect your GitHub repo
-5. Render will read `render.yaml` and auto-configure:
-   - Gateway API (Docker)
-   - Redis (free tier)
-6. Add environment variables in Render dashboard:
-   - `GROQ_API_KEY`
-   - `ALCHEMY_URL` (use `https://rpc.ankr.com/polygon_mumbai`)
-   - `CONTRACT_ADDRESS`
-   - `WALLET_ADDRESS`
-   - `PRIVATE_KEY`
-7. Deploy
+## Student Azure staging
 
-**Note:** Agents (SAGE, GUARDIAN, EMPATH, ORACLE) run as separate Docker services. For Render's free tier limitations, you may need to deploy them as separate Web Services or run locally.
+The budget deployment uses public GHCR images and Azure Container Apps Consumption with zero minimum replicas, one maximum replica, and no Log Analytics workspace. Both frontend and API run as scale-to-zero Container Apps because the student subscription's allowed-location policy has no overlap with Azure Static Web Apps regions. This keeps low-traffic Azure usage inside the platform free allowances and avoids the recurring Azure Container Registry charge.
 
-## Frontend on Vercel (Free Tier)
+The active student revision uses `APP_ENV=staging`, Supabase Auth, durable Supabase PostgreSQL with forced tenant RLS, and a restricted runtime role. Redis, one Celery worker, and Celery Beat run as sidecars in the API replica. Documents must use shared Azure Blob Storage; container-local filesystems are not shared between the API and worker. Redis/task state and the legacy SQLite compatibility database remain ephemeral; periodic jobs run only while HTTP traffic keeps the replica active. It is not a production topology. If Blob Storage cannot be configured for a short demo, use `TASKS_EAGER=true` with local storage so ingestion occurs in the API container.
 
-### Option A: Vercel CLI
+Before changing the Azure revision to `APP_ENV=production`, add durable private object storage, managed Redis with `noeviction`, separate worker/scheduler deployment, malware scanning, backups, complete Razorpay settings, exact HTTPS origins, and all cost-control values. Keep the existing restricted non-superuser PostgreSQL runtime role.
+
+## 1. Pre-deployment gates
+
+Do not launch unless CI passes compilation, Ruff, all backend tests, the PostgreSQL RLS test, deterministic evaluation, OpenAPI generation, TypeScript checks, component tests, the Vite build, the Playwright journey, and Compose validation.
+
+The launch gate additionally requires staging proof of:
+
+- cross-organization and cross-workspace `404` isolation;
+- immediate API-key revocation;
+- live-key access to published releases only;
+- reviewer locking and edited-answer revalidation;
+- the 500/501 quota boundary under concurrency;
+- duplicate and out-of-order Razorpay webhooks;
+- billing add-on outbox reconciliation;
+- content redaction and document source deletion;
+- provider failure producing non-billable `SYSTEM_UNAVAILABLE`;
+- database backup restoration into a clean staging environment.
+
+## 2. Supabase
+
+Create separate projects for development, staging, and production.
+
+1. Enable verified email/password and Google OAuth.
+2. Configure the exact frontend callback URLs and password-recovery URL.
+3. Enable CAPTCHA enforcement and use the matching Turnstile site key as `VITE_TURNSTILE_SITE_KEY`.
+4. Enable MFA; platform administrators must enroll and present `aal2`.
+5. Enable `pgvector` and confirm point-in-time backups for the selected plan.
+6. Create a private object-storage bucket. Do not expose source objects publicly.
+7. Use the PostgreSQL connection string as `DATABASE_URL` and the storage S3-compatible values as `S3_*`.
+
+Run migrations with a role that owns the application schema:
+
 ```bash
-cd frontend
-npm install
-vercel --prod
+alembic upgrade head
 ```
 
-### Option B: GitHub Integration
-1. Push frontend folder to GitHub
-2. Go to [vercel.com](https://vercel.com)
-3. Import project
-4. Framework preset: **Vite**
-5. Set environment variable:
-   - `VITE_API_URL=https://your-render-gateway.onrender.com/api/v1`
-6. Deploy
+The runtime role needs CRUD privileges but should not be a PostgreSQL superuser, because superusers bypass RLS. The migration enables and forces tenant RLS policies. Azure Container Apps currently uses the free Supabase IPv4 session pooler on port `5432`; transaction-local tenant settings are reset at transaction boundaries. Use the direct owner connection only for migrations from an IPv6-capable trusted environment.
 
-## Local Hardhat Blockchain (Offline Demo)
+## 3. Razorpay
 
-If you can't get test MATIC or RPC access:
+Before setting `APP_ENV=production`:
+
+1. Activate Razorpay Subscriptions for the account and create a recurring INR plan.
+2. Store the resulting plan ID as `RAZORPAY_PLAN_ID` and choose the bounded billing-cycle count in `RAZORPAY_SUBSCRIPTION_TOTAL_COUNT`.
+3. Generate test/live API credentials and supply `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET`.
+4. Register `POST https://<api-origin>/api/v1/webhooks/razorpay` for subscription lifecycle events.
+5. Set a dedicated webhook secret as `RAZORPAY_WEBHOOK_SECRET`; it is distinct from the API key secret.
+6. Supply `OVERAGE_UNIT_PRICE_PAISE`; completed overage decisions are added to the subscription as INR add-ons.
+
+Use Razorpay test mode in staging. For demos that must not contact Razorpay, `RAZORPAY_DEMO_MODE=true` returns an explicitly labelled, no-charge success page and marks demo add-ons as delivered locally. The application refuses to start with this flag in production. Confirm raw-body HMAC rejection, duplicate `X-Razorpay-Event-Id` handling, authenticated/active/pending/halted/cancelled states, add-on delivery, and daily reconciliation before live mode. Ambiguous add-on timeouts are held for review instead of automatically retried because the provider endpoint has no idempotency key.
+
+## 4. Render API and workers
+
+`render.yaml` declares:
+
+- `agentmesh-api`, with `/readyz` health checks and `alembic upgrade head` as the pre-deploy command;
+- `agentmesh-worker`, running Celery jobs;
+- `agentmesh-scheduler`, running Celery Beat;
+- persistent `agentmesh-redis` with `noeviction` for task durability.
+
+Supply every `sync: false` value in the `agentmesh-production` environment group. Production startup intentionally fails when PostgreSQL, managed Redis, Supabase Auth, private S3 storage, exact HTTPS CORS, Razorpay, transactional email, external pricing, and provider-cost limits are incomplete.
+
+Important server-only settings:
+
+| Setting | Purpose |
+| --- | --- |
+| `DATABASE_URL` | Supabase PostgreSQL URL using the application role |
+| `REDIS_URL` | Managed Redis internal URL |
+| `SUPABASE_URL` | JWT issuer/JWKS origin |
+| `API_KEY_PEPPER` | 32+ character key-digest pepper |
+| `WEBHOOK_ENCRYPTION_KEY` | 32+ character envelope key for webhook secrets |
+| `S3_*` | Private Supabase/object-storage S3 interface |
+| `RAZORPAY_*` | Subscription authorization, add-ons, and webhook verification |
+| `OVERAGE_UNIT_PRICE_PAISE` | Deployment-configured INR usage price |
+| `PROVIDER_COST_CAP_CENTS` | Emergency monthly provider-cost ceiling |
+| `ESTIMATED_COST_PER_DECISION_MILLICENTS` | Cost estimate used by the circuit breaker |
+| `RESEND_API_KEY`, `RESEND_FROM` | Resend transactional email sender |
+| `GROQ_API_KEY` | AgentMesh-owned model-provider credential |
+
+Never place these settings in a `VITE_` variable.
+
+After the first verified user signs in, grant the initial platform role from a protected shell:
 
 ```bash
-cd blockchain
-npm install
-
-# Terminal 1: Start local node
-npx hardhat node
-
-# Terminal 2: Deploy contract
-npx hardhat run scripts/start-local.js --network localhost
-
-# Copy the printed CONTRACT_ADDRESS into your .env
-# Set ALCHEMY_URL=http://host.docker.internal:8545
+python -m api.bootstrap_platform_admin \
+  --user-id <supabase-user-id> \
+  --granted-by <operator-identity>
 ```
 
-This gives you a fully functional blockchain on your laptop — perfect for hackathon judging.
+The command requires a verified application identity and writes an immutable platform audit event.
+
+## 5. Vercel frontend
+
+Configure root directory `frontend`, build command `npm run build`, and output directory `dist`. Supply only public settings:
+
+```dotenv
+VITE_API_URL=https://api.example.com/api/v1
+VITE_SUPABASE_URL=https://<project>.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=<public-publishable-key>
+VITE_TURNSTILE_SITE_KEY=<public-site-key>
+```
+
+Add the exact Vercel origin to backend `CORS_ORIGINS`. `frontend/vercel.json` rewrites client-side routes to `index.html`.
+
+## 6. Smoke test
+
+```bash
+curl https://api.example.com/healthz
+curl https://api.example.com/readyz
+```
+
+Then complete this staging journey in a clean browser:
+
+1. Sign up through CAPTCHA, verify email, and complete onboarding.
+2. Upload a non-sensitive Markdown policy and wait for `READY_FOR_REVIEW`.
+3. Preview extracted chunks and publish a knowledge release.
+4. Create a test key and call `POST /api/v1/decisions` with an idempotency key.
+5. Confirm the decision, citations, exact release/profile IDs, and one usage unit.
+6. Retry the same request and confirm the same decision ID and unchanged usage.
+7. Cause an escalation, claim it, test a conflicting edit, and approve a safe cited answer.
+8. Confirm signed customer webhook delivery and immutable review/audit history.
+9. Authorize a Razorpay test subscription and compare AgentMesh overage usage with created add-ons.
+10. Revoke the key and confirm the next call returns `401`.
+
+## 7. Privacy, retention, and deletion
+
+The API never intentionally logs prompts, answers, documents, secrets, payment data, or provider credentials. Raw decision and escalation content is redacted after each organization's retention window (30 days by default); audit and billing metadata remain. Archiving a document removes its chunks from retrieval immediately and queues source-object deletion.
+
+Alerts should cover API error/latency rate, queue depth, failed jobs, failed webhook/email deliveries, provider-cost circuit activation, Razorpay outbox failures/review states, and reconciliation drift. Restore backups regularly into an isolated staging project and record recovery time and data-loss window.
+
+## 8. Rollback
+
+1. Stop new deployments and preserve the current database/object-storage state.
+2. Roll the API, worker, scheduler, and frontend back to the same known-good revision.
+3. Do not run Alembic downgrade against production unless a separately reviewed restore plan requires it.
+4. If the new migration is incompatible, restore the pre-deploy database backup into a new database and point the known-good services to it.
+5. Repeat readiness, isolation, key revocation, decision, review, billing, and deletion smoke tests.
+
+The old shared `X-Review-API-Key` and SQLite `/api/v1/chat` path exist only for local compatibility tests and must not be exposed as the production customer or reviewer interface. Blockchain remains disabled and outside the production request path.

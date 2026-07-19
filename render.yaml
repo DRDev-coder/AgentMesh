@@ -1,32 +1,132 @@
-services:
-  - type: web
-    name: agentmesh-gateway
-    runtime: docker
-    dockerfilePath: ./api/Dockerfile
+envVarGroups:
+  - name: agentmesh-production
     envVars:
+      - key: APP_ENV
+        value: production
+      - key: SAAS_ENABLED
+        value: "true"
+      - key: AUTH_MODE
+        value: supabase
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_JWT_AUDIENCE
+        value: authenticated
+      - key: CORS_ORIGINS
+        sync: false
+      - key: PUBLIC_APP_URL
+        sync: false
+      - key: OBJECT_STORAGE_BACKEND
+        value: s3
+      - key: S3_ENDPOINT_URL
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: API_KEY_PEPPER
+        generateValue: true
+      - key: WEBHOOK_ENCRYPTION_KEY
+        generateValue: true
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      - key: RAZORPAY_PLAN_ID
+        sync: false
+      - key: RAZORPAY_SUBSCRIPTION_TOTAL_COUNT
+        value: "120"
+      - key: RAZORPAY_BASE_URL
+        value: https://api.razorpay.com/v1
+      - key: OVERAGE_UNIT_PRICE_PAISE
+        sync: false
+      - key: PROVIDER_COST_CAP_CENTS
+        sync: false
+      - key: ESTIMATED_COST_PER_DECISION_MILLICENTS
+        sync: false
+      - key: EMAIL_PROVIDER_URL
+        sync: false
+      - key: EMAIL_PROVIDER_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: MALWARE_SCAN_URL
+        sync: false
+      - key: MALWARE_SCAN_API_KEY
+        sync: false
       - key: GROQ_API_KEY
         sync: false
-      - key: REDIS_HOST
-        fromService:
-          name: agentmesh-redis
-          type: redis
-          property: host
-      - key: REDIS_PORT
-        fromService:
-          name: agentmesh-redis
-          type: redis
-          property: port
-      - key: ALCHEMY_URL
-        sync: false
-      - key: CONTRACT_ADDRESS
-        sync: false
-      - key: WALLET_ADDRESS
-        sync: false
-      - key: PRIVATE_KEY
-        sync: false
-    healthCheckPath: /api/v1/health
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: BLOCKCHAIN_ENABLED
+        value: "false"
+      - key: TASKS_EAGER
+        value: "false"
 
-  - type: redis
+services:
+  - type: keyvalue
     name: agentmesh-redis
-    plan: free
+    plan: starter
     ipAllowList: []
+    maxmemoryPolicy: noeviction
+    persistenceMode: journal-snapshot
+
+  - type: web
+    name: agentmesh-api
+    runtime: docker
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: .
+    dockerCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    preDeployCommand: alembic upgrade head
+    plan: starter
+    autoDeployTrigger: checksPass
+    healthCheckPath: /readyz
+    maxShutdownDelaySeconds: 60
+    envVars:
+      - fromGroup: agentmesh-production
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: agentmesh-redis
+          property: connectionString
+
+  - type: worker
+    name: agentmesh-worker
+    runtime: docker
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: .
+    dockerCommand: celery -A api.worker.celery_app worker --loglevel=INFO --concurrency=2
+    plan: starter
+    autoDeployTrigger: checksPass
+    maxShutdownDelaySeconds: 120
+    envVars:
+      - fromGroup: agentmesh-production
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: agentmesh-redis
+          property: connectionString
+
+  - type: worker
+    name: agentmesh-scheduler
+    runtime: docker
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: .
+    dockerCommand: celery -A api.worker.celery_app beat --loglevel=INFO
+    plan: starter
+    autoDeployTrigger: checksPass
+    maxShutdownDelaySeconds: 60
+    envVars:
+      - fromGroup: agentmesh-production
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: agentmesh-redis
+          property: connectionString

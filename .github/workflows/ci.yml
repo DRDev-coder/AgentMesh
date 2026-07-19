@@ -1,34 +1,131 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
 
 jobs:
-  test:
+  verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: agentmesh
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d agentmesh"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      APP_ENV: test
+      SAAS_ENABLED: "true"
+      AUTH_MODE: development
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/agentmesh
+      RLS_TEST_DATABASE_URL: postgresql+psycopg://agentmesh_ci:agentmesh_ci@localhost:5432/agentmesh
+      REDIS_URL: redis://localhost:6379/0
+      OBJECT_STORAGE_BACKEND: local
+      OBJECT_STORAGE_PATH: /tmp/agentmesh-documents
+      CORS_ORIGINS: http://localhost:3000
+      PUBLIC_APP_URL: http://localhost:3000
+      TASKS_EAGER: "true"
+      GROQ_API_KEY: ""
+      BLOCKCHAIN_ENABLED: "false"
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            api/requirements.txt
+            requirements-dev.txt
 
-      - name: Install dependencies
+      - name: Install backend and test dependencies
         run: |
-          pip install pytest requests
-          pip install -r api/requirements.txt
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
 
-      - name: Run tests
-        run: pytest tests/ -v
+      - name: Apply PostgreSQL migrations
+        run: alembic upgrade head
+
+      - name: Create restricted RLS test role
         env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d agentmesh -v ON_ERROR_STOP=1 -c "CREATE ROLE agentmesh_ci LOGIN PASSWORD 'agentmesh_ci' NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT"
+          psql -h localhost -U postgres -d agentmesh -v ON_ERROR_STOP=1 -c "GRANT USAGE ON SCHEMA public TO agentmesh_ci; GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO agentmesh_ci"
 
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Compile and lint Python sources
+        run: |
+          python -m compileall agents api consensus shared evaluation
+          python -m ruff check agents api consensus shared evaluation tests
+
+      - name: Run backend and RLS tests
+        run: python -m pytest -v
+
+      - name: Run deterministic evaluation
+        run: python evaluation/run_evaluation.py --no-write
+
+      - name: Export OpenAPI contract
+        run: python -m api.export_openapi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          python-version: '3.11'
-      - run: pip install flake8
-      - run: flake8 api/ agents/ consensus/ --max-line-length=120
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Generate API types and verify frontend
+        working-directory: frontend
+        run: |
+          npm run generate:api
+          npm run typecheck
+          npm run test
+          npm run build
+
+      - name: Check generated API artifacts
+        run: git diff --exit-code -- docs/openapi.json frontend/src/generated/api.ts
+
+      - name: Install Playwright Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser journey
+        working-directory: frontend
+        run: npm run test:e2e
+
+      - name: Install and test optional audit contract
+        working-directory: blockchain
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
+
+      - name: Validate Docker Compose
+        run: docker compose --env-file .env.example config --quiet

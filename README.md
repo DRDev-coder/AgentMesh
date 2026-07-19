@@ -1,117 +1,128 @@
 # AgentMesh
 
-**No AI decides alone.**
+AgentMesh is a multi-tenant B2B SaaS for building evidence-grounded customer-support decision APIs. Each organization can create isolated workspaces, publish approved knowledge and configuration releases, issue test/live API keys, inspect four-agent decision traces, review escalations, and manage usage-based billing.
 
-Multi-agent AI support system with Byzantine Fault-Tolerant consensus. 4 specialized agents (SAGE, GUARDIAN, EMPATH, ORACLE) debate and vote before answering. Every decision logged to Polygon Amoy blockchain for immutable audit.
+The existing SAGE → GUARDIAN → ORACLE → EMPATH council and deterministic fail-closed decision precedence remain the runtime core. Mandatory platform safety rules cannot be disabled by workspace configuration.
 
-AgentMesh is a Byzantine Fault-Tolerant multi-agent AI support system where 4 specialized agents (SAGE, GUARDIAN, EMPATH, ORACLE) independently analyze every customer query, debate the correct response, and reach a cryptographically-verified consensus before any answer reaches the customer.
+This MVP is for English-language informational support. It explicitly excludes PHI, patient records, payment-card data, bank credentials, arbitrary executable rules, regulated financial/medical decisions, OCR, SAML, customer BYOK, and embeddable chat widgets. It makes no HIPAA, PCI DSS, financial-regulatory, or medical-compliance claim.
 
-## The Problem
+## What is implemented
 
-Current AI support relies on a single LLM. One hallucination can cost millions:
-- Air Canada bot invented a bereavement policy → lawsuit
-- Chevy bot offered $1 cars → had to honor deals
-- Banks lose crores to social engineering via support bots
+- Supabase email/password, Google OAuth, recovery, verified-email sessions, JWKS validation, and Turnstile-compatible signup CAPTCHA.
+- Organizations, invitations, multiple workspaces, owner/admin/developer/reviewer/viewer RBAC, and MFA-gated platform administrators.
+- PostgreSQL/Alembic persistence, tenant-scoped repositories, tenant-prefixed queries, and PostgreSQL row-level-security policies.
+- PDF, DOCX, TXT, and Markdown ingestion up to 25 MB; signature validation, obvious malware rejection, hashing/deduplication, deterministic chunks, provenance, and hybrid lexical/vector retrieval.
+- Immutable document/profile/knowledge releases, draft behavior for test keys, published-only behavior for live keys, preview, archive, and rollback.
+- One-time-reveal `am_test_` and `am_live_` API keys stored only as keyed digests, with scopes, expiry, revocation, and distributed Redis rate limits.
+- Idempotent `POST /api/v1/decisions`, exact citations, redacted traces, decision history, escalation lifecycle, optimistic review locking, and edited-answer revalidation.
+- Organization-wide usage ledger, 500 completed decisions per UTC month, non-billable platform failures, Razorpay subscription add-on outbox, hosted subscription links/webhooks, INR spend caps, and provider-cost circuit breaker.
+- Timestamped HMAC customer webhooks, retry history, Resend-backed transactional email outbox, document deletion jobs, and 30-day raw-content redaction jobs.
+- Immutable hash-chained PostgreSQL audit events. The experimental blockchain module is disabled and is not authoritative.
+- React/TypeScript SaaS dashboard using the existing Fraunces/Inter/JetBrains typography and cream/black/red visual system.
 
-## The Solution
+## Runtime architecture
 
-4 agents. 1 consensus. Immutable proof.
-
-| Agent | Role |
-|-------|------|
-| SAGE | Technical Expert — facts & documentation |
-| GUARDIAN | Security Enforcer — policy & compliance |
-| EMPATH | Emotional Intel — tone & churn risk |
-| ORACLE | Fact Checker — hallucination detection |
-
-## Quick Start
-
-```bash
-# 1. Clone and setup
-git clone https://github.com/yourusername/agentmesh.git
-cd agentmesh
-# .env is already configured with your keys
-
-# 2. Start everything
-docker-compose up --build
-
-# 3. Seed knowledge base (in another terminal)
-docker-compose exec gateway python /app/api/seed_docs.py
-
-# 4. Open frontend
-cd frontend && npm install && npm run dev
+```text
+Vercel: React + Vite + TypeScript
+             |
+Azure Container Apps: FastAPI modular monolith ---- Redis (limits, cache, Celery)
+             |                         |
+             |                  Celery worker + scheduler
+             |
+Supabase: PostgreSQL + pgvector, Auth, private object storage, backups
+             |
+Razorpay: Subscriptions, usage add-ons, hosted authorization, signed webhooks
 ```
 
-## Blockchain Setup (3 Options)
+The student staging deployment runs both frontend and API on Azure Container Apps Consumption scaled to zero. Tenant data is durable in the existing Supabase PostgreSQL database through a restricted RLS-enforced runtime role. Redis, Celery worker/Beat, local document storage, and the legacy SQLite compatibility database live inside the API replica, so queue and file state remain ephemeral. This avoids paid Azure database, Redis, registry, and logging resources; see `infra/azure/README.md` for the production gap and deployed URLs.
 
-### Option A: Public RPC (Easiest — No Signup)
-Already configured in `.env`. The app will auto-try these free public endpoints:
-- **Ankr**: `https://rpc.ankr.com/polygon_mumbai`
-- **PublicNode**: `https://polygon-mumbai-bor-rpc.publicnode.com`
-- **MaticVigil**: `https://rpc-mumbai.maticvigil.com`
+Interactive decisions remain synchronous inside the modular monolith. Celery handles document ingestion, email, outbound webhooks, retention, source deletion, and Razorpay add-on delivery.
 
-No account needed. Just get free test MATIC from [Polygon Faucet](https://faucet.polygon.technology).
+## Local start
 
-### Option B: Infura (Free Tier)
-1. Go to [infura.io](https://infura.io) → Sign up (free)
-2. Create a Polygon Mumbai endpoint
-3. Update `.env`: `ALCHEMY_URL=https://polygon-mumbai.infura.io/v3/YOUR_KEY`
+Docker Compose starts PostgreSQL with pgvector, Redis, MinIO, migrations, the API, a Celery worker, and Celery Beat:
 
-### Option C: Local Hardhat (Offline Demo)
-Perfect for hackathon demos without internet:
 ```bash
-cd blockchain
-npm install
-npx hardhat node
-# In another terminal:
-npx hardhat run scripts/start-local.js --network localhost
+cp .env.example .env
+docker compose up --build
 ```
-Then update `.env` with the printed `CONTRACT_ADDRESS` and `ALCHEMY_URL=http://host.docker.internal:8545`.
 
-## Architecture
+Set `RESEND_API_KEY` in the ignored `.env` file. For testing, `RESEND_FROM=AgentMesh <onboarding@resend.dev>` can send only to the email address associated with the Resend account; use an address on a verified domain for other recipients.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed system design, BFT algorithm explanation, and design patterns.
+Then run the frontend:
 
-## Tech Stack
-
-- **AI:** Groq API (Llama 3 70B) + Local transformers
-- **Backend:** FastAPI, Redis, ChromaDB
-- **Blockchain:** Solidity, Hardhat, Polygon Mumbai (or local)
-- **Frontend:** React, Vite
-- **DevOps:** Docker Compose, GitHub Actions
-
-## Deploy to Production
-
-### Backend (Render Free Tier)
-1. Push to GitHub
-2. Go to [render.com](https://render.com) → New Web Service
-3. Connect repo, choose Docker environment
-4. Add environment variables from `.env`
-5. Deploy
-
-### Frontend (Vercel Free Tier)
 ```bash
 cd frontend
-npm run build
-# Or use Vercel CLI:
-vercel --prod
+npm install
+npm run dev
 ```
 
-## Demo Video Script (2 Minutes)
+Open `http://localhost:3000`. Local development auth uses `X-Dev-User`; production refuses to start unless Supabase, PostgreSQL, private object storage, Razorpay, Resend, HTTPS CORS, and cost controls are configured.
 
-| Time | Scene |
-|------|-------|
-| 0:00-0:15 | Show bad chatbot: "Share your OTP for instant refund" |
-| 0:15-0:30 | News headlines of AI support disasters |
-| 0:30-0:35 | AgentMesh logo: "No AI decides alone" |
-| 0:35-1:05 | Live demo: 4 agent cards animate, debate, reach consensus |
-| 1:05-1:20 | Blocked query: "BLOCKED — Escalating to Human" |
-| 1:20-1:35 | Click badge → show blockchain transaction on Polygonscan |
-| 1:35-1:50 | Show GitHub repo, architecture, CI passing |
-| 1:50-2:00 | URLs, team names, "AgentMesh. Because one brain is never enough." |
+For a host-native backend, start PostgreSQL and Redis, copy `.env.example`, run `alembic upgrade head`, then:
 
-## Team
+```bash
+python -m pip install -r requirements-dev.txt
+python -m uvicorn api.main:app --env-file .env --port 8000
+```
 
-- [Your Name] — AI & Backend
-- [Teammate] — Blockchain & DevOps
-- [Teammate] — Frontend & Design
+## Public decision API
+
+```http
+POST /api/v1/decisions
+Authorization: Bearer am_live_<public-id>.<secret>
+Idempotency-Key: unique-client-request-id
+Content-Type: application/json
+```
+
+```json
+{
+  "input": "What is the return policy?",
+  "session_id": "optional-session",
+  "end_user_id": "optional-opaque-reference",
+  "metadata": {}
+}
+```
+
+The API key selects the organization, workspace, and test/live environment. Callers never submit tenant IDs. Reusing the same idempotency key with the same body returns the original response without another usage unit; reusing it with another body returns `409`.
+
+The generated contract is [docs/openapi.json](docs/openapi.json), with generated TypeScript declarations in [frontend/src/generated/api.ts](frontend/src/generated/api.ts). `/api/v1/chat` remains only as a temporary local compatibility route.
+
+## Roles
+
+| Role | Primary permissions |
+| --- | --- |
+| `owner` | Billing, spend cap, ownership, deletion, and all customer actions |
+| `admin` | Team, workspaces, documents, profiles, reviews, keys, webhooks |
+| `developer` | Keys, webhooks, playground, traces, read-only config/knowledge |
+| `reviewer` | Decision/evidence access and escalation actions |
+| `viewer` | Read-only dashboards and decision records |
+
+Platform roles are not grantable through a public endpoint. Bootstrap an existing verified identity with:
+
+```bash
+python -m api.bootstrap_platform_admin --user-id <supabase-user-id> --granted-by <operator-id>
+```
+
+Access to `/platform/*` additionally requires a Supabase `aal2` MFA session. The platform console exposes operational/commercial metadata, not tenant prompts or documents.
+
+## Verification
+
+```bash
+python -m compileall agents api consensus shared evaluation
+python -m ruff check agents api consensus shared evaluation tests
+python -m pytest -q
+python evaluation/run_evaluation.py --no-write
+python -m api.export_openapi
+
+cd frontend
+npm run generate:api
+npm run typecheck
+npm run test
+npm run build
+npm run test:e2e
+```
+
+CI also applies migrations to PostgreSQL, proves RLS with a restricted database role, verifies generated OpenAPI artifacts, runs the browser journey, tests the optional experimental contract, and validates Docker Compose.
+
+See [DEPLOY.md](DEPLOY.md) for production environment setup, migrations, smoke tests, backup/restore gates, and rollback.

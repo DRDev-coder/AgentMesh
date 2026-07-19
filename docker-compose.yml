@@ -1,101 +1,162 @@
-version: '3.8'
+name: agentmesh
+
+x-api-environment: &api-environment
+  APP_ENV: development
+  SAAS_ENABLED: "true"
+  AUTH_MODE: development
+  DATABASE_URL: postgresql+psycopg://agentmesh:agentmesh@postgres:5432/agentmesh
+  REDIS_URL: redis://redis:6379/0
+  CORS_ORIGINS: "${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173}"
+  PUBLIC_APP_URL: "${PUBLIC_APP_URL:-http://localhost:3000}"
+  OBJECT_STORAGE_BACKEND: s3
+  S3_ENDPOINT_URL: http://minio:9000
+  S3_REGION: us-east-1
+  S3_BUCKET: agentmesh-documents
+  S3_ACCESS_KEY_ID: "${S3_ACCESS_KEY_ID:-agentmesh-local}"
+  S3_SECRET_ACCESS_KEY: "${S3_SECRET_ACCESS_KEY:-agentmesh-local-secret}"
+  API_KEY_PEPPER: "${API_KEY_PEPPER:-local-api-key-pepper-change-me}"
+  WEBHOOK_ENCRYPTION_KEY: "${WEBHOOK_ENCRYPTION_KEY:-local-webhook-key-change-me}"
+  TASKS_EAGER: "false"
+  GROQ_API_KEY: "${GROQ_API_KEY:-}"
+  GROQ_MODEL: "${GROQ_MODEL:-llama-3.3-70b-versatile}"
+  RAZORPAY_KEY_ID: "${RAZORPAY_KEY_ID:-}"
+  RAZORPAY_KEY_SECRET: "${RAZORPAY_KEY_SECRET:-}"
+  RAZORPAY_DEMO_MODE: "${RAZORPAY_DEMO_MODE:-false}"
+  RAZORPAY_WEBHOOK_SECRET: "${RAZORPAY_WEBHOOK_SECRET:-}"
+  RAZORPAY_PLAN_ID: "${RAZORPAY_PLAN_ID:-}"
+  RAZORPAY_SUBSCRIPTION_TOTAL_COUNT: "${RAZORPAY_SUBSCRIPTION_TOTAL_COUNT:-120}"
+  RAZORPAY_BASE_URL: "${RAZORPAY_BASE_URL:-https://api.razorpay.com/v1}"
+  OVERAGE_UNIT_PRICE_PAISE: "${OVERAGE_UNIT_PRICE_PAISE:-0}"
+  PROVIDER_COST_CAP_CENTS: "${PROVIDER_COST_CAP_CENTS:-0}"
+  ESTIMATED_COST_PER_DECISION_MILLICENTS: "${ESTIMATED_COST_PER_DECISION_MILLICENTS:-0}"
+  RESEND_API_KEY: "${RESEND_API_KEY:-}"
+  RESEND_FROM: "${RESEND_FROM:-AgentMesh <onboarding@resend.dev>}"
+  MALWARE_SCAN_URL: "${MALWARE_SCAN_URL:-}"
+  MALWARE_SCAN_API_KEY: "${MALWARE_SCAN_API_KEY:-}"
+  BLOCKCHAIN_ENABLED: "false"
 
 services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: agentmesh
+      POSTGRES_USER: agentmesh
+      POSTGRES_PASSWORD: agentmesh
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentmesh -d agentmesh"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory-policy noeviction
     volumes:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 20
+    restart: unless-stopped
 
-  chromadb:
-    image: chromadb/chroma:latest
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: "${S3_ACCESS_KEY_ID:-agentmesh-local}"
+      MINIO_ROOT_PASSWORD: "${S3_SECRET_ACCESS_KEY:-agentmesh-local-secret}"
     ports:
-      - "8001:8000"
+      - "9001:9001"
     volumes:
-      - chroma_data:/chroma/chroma
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - minio_data:/data
+    restart: unless-stopped
 
-  sage:
-    build: ./agents/sage
-    ports:
-      - "5001:5000"
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_started
     environment:
-      - GROQ_API_KEY=${GROQ_API_KEY}
-      - CHROMA_HOST=chromadb
-      - CHROMA_PORT=8000
-    depends_on:
-      chromadb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-
-  guardian:
-    build: ./agents/guardian
-    ports:
-      - "5002:5000"
-    environment:
-      - GROQ_API_KEY=${GROQ_API_KEY}
-    depends_on:
-      redis:
-        condition: service_healthy
-
-  empath:
-    build: ./agents/empath
-    ports:
-      - "5003:5000"
-    depends_on:
-      redis:
-        condition: service_healthy
-
-  oracle:
-    build: ./agents/oracle
-    ports:
-      - "5004:5000"
-    environment:
-      - GROQ_API_KEY=${GROQ_API_KEY}
-    depends_on:
-      redis:
-        condition: service_healthy
+      S3_ACCESS_KEY_ID: "${S3_ACCESS_KEY_ID:-agentmesh-local}"
+      S3_SECRET_ACCESS_KEY: "${S3_SECRET_ACCESS_KEY:-agentmesh-local-secret}"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - until mc alias set local http://minio:9000 "$${S3_ACCESS_KEY_ID}" "$${S3_SECRET_ACCESS_KEY}"; do sleep 1; done; mc mb --ignore-existing local/agentmesh-documents
+    restart: "no"
 
   gateway:
     build:
       context: .
-      dockerfile: ./api/Dockerfile
+      dockerfile: api/Dockerfile
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000
     ports:
-      - "8000:8000"
-    environment:
-      - GROQ_API_KEY=${GROQ_API_KEY}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - ALCHEMY_URL=${ALCHEMY_URL}
-      - CONTRACT_ADDRESS=${CONTRACT_ADDRESS}
-      - WALLET_ADDRESS=${WALLET_ADDRESS}
-      - PRIVATE_KEY=${PRIVATE_KEY}
-    volumes:
-      - ./consensus:/app/consensus:ro
-      - ./data:/app/data:ro
+      - "${API_PORT:-8000}:8000"
+    environment: *api-environment
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
-      sage:
-        condition: service_started
-      guardian:
-        condition: service_started
-      empath:
-        condition: service_started
-      oracle:
-        condition: service_started
+      minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/readyz', timeout=3).read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+
+  migrate:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    command: alembic upgrade head
+    environment: *api-environment
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  worker:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    command: celery -A api.worker.celery_app worker --loglevel=INFO --concurrency=2
+    environment: *api-environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 60s
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    command: celery -A api.worker.celery_app beat --loglevel=INFO --schedule=/tmp/celerybeat-schedule
+    environment: *api-environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    init: true
+    restart: unless-stopped
 
 volumes:
+  postgres_data:
   redis_data:
-  chroma_data:
+  minio_data:
